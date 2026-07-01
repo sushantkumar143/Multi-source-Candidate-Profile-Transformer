@@ -1,0 +1,35 @@
+# Resume Parser Refactor Walkthrough
+
+I have completely overhauled the resume parsing engine to make it production-grade, layout-aware, and highly robust using a deterministic + AI-verification pipeline.
+
+## What Changed
+
+### 1. Spatial Layout Recognition
+I replaced the basic `pdfplumber.extract_text()` with `pdfplumber.extract_words()`. The parser now groups words by their `y`-coordinates to reconstruct lines accurately, detecting columns and inserting logical spacing (` | `) when large visual gaps are present. This prevents two columns from being awkwardly smashed together.
+
+### 2. Modular Section Parsers
+The massive, brittle regex blocks in `resume_parser.py` have been broken down into highly specialized, dedicated modules:
+- **`parsers/experience_parser.py`**: Identifies dates (e.g., `Jan 2020 - Present`), splits the section into jobs, and heuristically maps lines to `company`, `title`, and `summary`.
+- **`parsers/education_parser.py`**: Locates canonical degree acronyms (`B.Tech`, `B.S.`, `M.S.`, `Ph.D.`) and graduation years, separating degrees, institutions, and fields of study cleanly.
+
+### 3. Logical Consistency Validators
+I created **`utils/resume_validators.py`** which acts as a sanity-checker. It throws warnings if it detects:
+- Dates that are absurdly far in the future
+- Start dates that occur after end dates
+- Experience entries missing companies or titles
+- Education entries missing institutions
+
+### 4. Groq LLM Verification Layer
+To achieve near 100% accuracy without hallucination, I implemented **`parsers/llm_verifier.py`**:
+- **Strict Prompting**: The LLM acts solely as a verifier. It is fed the raw text and our deterministic JSON, instructed to correct errors and fill gaps *only* if the data explicitly exists in the text.
+- **Multi-Key Fallback**: The verifier cycles through the 3 Groq API keys you provided.
+- **Model Fallback Mechanism**: During testing, the `llama-3.1-70b-versatile` model was decommissioned by Groq, so the pipeline gracefully caught the error, fell back to `llama-3.1-8b-instant`, and completed the verification successfully!
+
+## Verification Results
+I executed `python app.py --input input/candidates` to test the new pipeline. 
+
+The logs confirmed:
+1. `pdfplumber` layout extraction succeeded.
+2. The validators ran and caught a missing title in a dummy entry.
+3. The LLM verifier hit the Groq API, gracefully handled the deprecated model error via fallback, and returned a perfectly structured, verified JSON.
+4. The final `candidate.json` and `candidate_full.json` files were generated successfully.

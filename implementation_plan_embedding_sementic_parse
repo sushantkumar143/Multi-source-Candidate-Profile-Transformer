@@ -1,0 +1,60 @@
+# Semantic-Aware Merge Pipeline Implementation Plan
+
+This plan details the design and changes required to refactor the merge engine into a semantic-aware merge pipeline with field-specific reliability and data freshness scoring.
+
+## User Review Required
+> [!IMPORTANT]
+> **Semantic Matcher Design:** To resolve "dont use LLM instead use embeddings", we will build a hybrid semantic matcher:
+> 1. It will first attempt to load a lightweight local sentence-transformers model (e.g., `all-MiniLM-L6-v2`) to compute dense embeddings.
+> 2. If `sentence_transformers` is not installed or loading fails (due to CPU/memory constraints), it will automatically fall back to a **pure-Python Char N-Gram TF-IDF Cosine Similarity Embedding** paired with **Jaro-Winkler/Levenshtein distance**.
+> 3. This guarantees no LLM calls are used for semantic comparison, keeping execution extremely fast, offline-friendly, and accurate for variations like "Google LLC" vs "Google" and "SWE" vs "Software Engineer".
+> **Field-Specific Reliability Matrix:** We will introduce a matrix where different sources have different trust weights per field (e.g., GitHub is highly trusted for `skills`, Resume for `experience`, and CSV for contact details).
+
+## Proposed Changes
+
+### 1. Settings Update
+#### [MODIFY] [settings.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level Project/Candidate%20Transformer/config/settings.py)
+- Define `FIELD_SOURCE_RELIABILITY` matrix.
+- Define conflict resolution weights including a new `CONFLICT_WEIGHT_FRESHNESS` weight (`0.15`).
+
+### 2. Normalization Engine
+#### [NEW] [semantic_normalizer.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/normalizers/semantic_normalizer.py)
+Implement `normalize_company(name: str)`, `normalize_title(title: str)`, `normalize_degree(degree: str)` using rules:
+- Suffix removal (LLC, Inc, Corp, Ltd).
+- Common abbreviations (SWE -> Software Engineer, QA -> Quality Assurance).
+- Degree maps (Bachelor of Tech -> B.Tech).
+
+### 3. Semantic Deduplication and Matching
+#### [NEW] [semantic_matcher.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/merger/semantic_matcher.py)
+- Implement a TF-IDF Char N-Gram Vectorizer in pure Python.
+- Computes cosine similarity between text vectors.
+- Exposes `are_semantically_equivalent(val1: str, val2: str, field_name: str) -> bool` using a threshold of `0.80` similarity.
+
+### 4. Freshness and Field-Specific Reliability in Merge Engine
+#### [MODIFY] [merge_engine.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/merger/merge_engine.py)
+- Modify `merge` to accept file modification times from the source files.
+- Calculate freshness scores scaled between `0.0` (oldest) and `1.0` (newest).
+- Integrate `FIELD_SOURCE_RELIABILITY` for scoring.
+
+### 5. Conflict Resolver Scoring Update
+#### [MODIFY] [conflict_resolver.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/merger/conflict_resolver.py)
+- Incorporate the freshness factor and field-specific reliability into the score calculation.
+- Log normalization details and semantic decisions.
+
+### 6. Pipeline Integration
+#### [MODIFY] [pipeline.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/pipeline.py)
+- Capture file modification times during parser registry scanning.
+- Pass timestamps to the `MergeEngine`.
+
+### 7. Enriched Audit Logging
+#### [MODIFY] [audit_engine.py](file:///c:/Users/susha/OneDrive/Desktop/Resume%20Level%20Project/Candidate%20Transformer/audit/audit_engine.py)
+- Expand the log schema to record normalization steps, semantic merges, and LLM verification usage.
+
+## Verification Plan
+
+### Automated Tests
+- Write test cases checking that "Google" and "Google LLC" merge into a single experience entry using the semantic matcher.
+- Write test cases for field-specific reliability (e.g., GitHub skills priority).
+
+### Manual Verification
+- Execute `python app.py --input input/candidates` and inspect `audit_report.json` to verify semantic merge details.

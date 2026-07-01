@@ -1,0 +1,386 @@
+{
+  "candidate_id": "4b7e121e66cc",
+  "full_name": "Sushant Kumar",
+  "emails": [
+    "sushant14300@gmail.com"
+  ],
+  "phones": [
+    "+916207851006"
+  ],
+  "location": {
+    "city": "Phagwara",
+    "region": null,
+    "country": "Punjab"
+  },
+  "links": {
+    "linkedin": "https://linkedin.com/in/sushant-kumar-97978b28b",
+    "github": "https://github.com/sushantkumar143",
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "Virtual Intern at AICTE - Edunet Foundation",
+  "years_experience": 0.2,
+  "skills": [
+    {
+      "name": "C++",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Python",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Java",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "React",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "FastAPI",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Docker",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "AWS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Git",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "RAG",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "LLMs",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Ruby",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "SQL",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Jenkins",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Linux",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Machine Learning",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "AI",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Hadoop",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "C",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "HTML",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "CSS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Matplotlib",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "NumPy",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "pandas",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Seaborn",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "scikit-learn",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "FAISS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "BM25",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "company": "AICTE - Edunet Foundation | IBM SkillsBuild | Virtual Internship",
+      "title": "Internship & Training",
+      "start": "2025-09",
+      "end": "2025-10",
+      "summary": "(cid:127) Built and deployed 3+ machine learning applications integrating AI and cloud-based workflows. (cid:127) Processed and visualized datasets containing 10,000+ records using Pandas, NumPy, and Matplotlib. (cid:127) Collaborated in a virtual team environment to deliver AI-driven prototypes within strict project deadlines."
+    },
+    {
+      "company": "Lovely Professional University",
+      "title": "Summer Training",
+      "start": "2025-06",
+      "end": "2025-07",
+      "summary": "(cid:127) Solved 500+ algorithmic problems across LeetCode and Codeforces covering graphs, Dynamic Programming, greedy, and advanced data structures. (cid:127) Improved competitive programming ranking by 65% through consistent optimization of time and space complexity. (cid:127) Reduced average solution runtime by 30-40% using STL optimization and advanced algorithmic techniques."
+    }
+  ],
+  "education": [
+    {
+      "institution": "Lovely Professional University",
+      "degree": "Bachelor of Technology - Computer Science and Engineering",
+      "field": "Computer Science and Engineering",
+      "start_year": 2023,
+      "end_year": null
+    }
+  ],
+  "provenance": [
+    {
+      "field": "full_name",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "full_name",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "emails",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "emails",
+      "source": "github",
+      "method": "github_api_readme"
+    },
+    {
+      "field": "emails",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "phones",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "phones",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "current_company",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "title",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "location",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "skills",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "skills",
+      "source": "github",
+      "method": "github_api_readme"
+    },
+    {
+      "field": "skills",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "links",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "links",
+      "source": "github",
+      "method": "github_api_readme"
+    },
+    {
+      "field": "links",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "experience",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    },
+    {
+      "field": "education",
+      "source": "resume",
+      "method": "pdf_text_extract_llm_verified"
+    }
+  ],
+  "overall_confidence": 0.558
+}
