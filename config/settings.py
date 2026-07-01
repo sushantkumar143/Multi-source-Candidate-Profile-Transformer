@@ -22,10 +22,24 @@ class Settings:
         "recruiter_notes": 0.50,  # Informal, subjective, potentially outdated
     }
 
+    # Field-specific reliability matrix
+    FIELD_SOURCE_RELIABILITY: dict[str, dict[str, float]] = {
+        "full_name": {"csv": 0.90, "linkedin": 0.85, "resume": 0.70, "github": 0.60, "recruiter_notes": 0.50},
+        "emails": {"csv": 0.95, "linkedin": 0.90, "resume": 0.85, "github": 0.90, "recruiter_notes": 0.50},
+        "phones": {"csv": 0.95, "linkedin": 0.90, "resume": 0.85, "github": 0.60, "recruiter_notes": 0.50},
+        "headline": {"linkedin": 0.85, "resume": 0.80, "csv": 0.70, "github": 0.60, "recruiter_notes": 0.50},
+        "location": {"linkedin": 0.85, "resume": 0.80, "csv": 0.75, "github": 0.70, "recruiter_notes": 0.50},
+        "links": {"github": 0.95, "linkedin": 0.90, "resume": 0.85, "csv": 0.80, "recruiter_notes": 0.50},
+        "skills": {"github": 0.90, "linkedin": 0.85, "resume": 0.80, "csv": 0.70, "recruiter_notes": 0.50},
+        "experience": {"resume": 0.85, "linkedin": 0.80, "csv": 0.60, "github": 0.40, "recruiter_notes": 0.50},
+        "education": {"resume": 0.85, "linkedin": 0.80, "csv": 0.70, "github": 0.40, "recruiter_notes": 0.50},
+    }
+
     # ── Conflict Resolution Weights ──
-    CONFLICT_WEIGHT_SOURCE_RELIABILITY: float = 0.35
-    CONFLICT_WEIGHT_AGREEMENT: float = 0.30
-    CONFLICT_WEIGHT_EXTRACTION: float = 0.25
+    CONFLICT_WEIGHT_SOURCE_RELIABILITY: float = 0.30
+    CONFLICT_WEIGHT_AGREEMENT: float = 0.25
+    CONFLICT_WEIGHT_EXTRACTION: float = 0.20
+    CONFLICT_WEIGHT_FRESHNESS: float = 0.15
     CONFLICT_WEIGHT_PENALTY: float = 0.10
 
     # ── Confidence Engine Weights ──

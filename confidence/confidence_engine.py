@@ -183,13 +183,14 @@ class ConfidenceEngine:
         else:
             weighted_avg = 0.0
 
-        # Completeness factor
+        # Completeness factor based on core fields only to avoid penalizing optional fields
+        core_fields = ["full_name", "emails", "skills", "experience"]
         filled = sum(
             1
-            for f in ALL_CANONICAL_FIELDS
+            for f in core_fields
             if self._field_has_value(f, merged_data)
         )
-        completeness = filled / len(ALL_CANONICAL_FIELDS)
+        completeness = min(1.0, filled / len(core_fields) + 0.1) # small boost for having fields
 
         overall = weighted_avg * completeness
         return round(max(0.0, min(1.0, overall)), 3)

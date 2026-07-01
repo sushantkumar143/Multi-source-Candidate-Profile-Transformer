@@ -90,12 +90,14 @@ class Pipeline:
 
         # -- Stage 2: Field Extraction --
         logger.info("--- Stage 2: Field Extraction ---")
-        extracted_data: list[tuple[str, dict[str, Any], float]] = []
+        extracted_data: list[tuple[str, dict[str, Any], float, float]] = []
         extraction_methods: dict[str, str] = {}
 
         for record in records:
             fields = extract_fields(record)
-            extracted_data.append((record.source, fields, record.extraction_confidence))
+            file_path = self.input_dir / record.source_file
+            timestamp = file_path.stat().st_mtime if file_path.exists() else 0.0
+            extracted_data.append((record.source, fields, record.extraction_confidence, timestamp))
             extraction_methods[record.source] = record.extraction_method
             logger.info(
                 "Extracted %d fields from %s (%s)",
@@ -108,7 +110,12 @@ class Pipeline:
         all_duplicates: list[dict[str, str]] = []
         normalization_results: dict[str, bool] = {}
 
-        for i, (source, fields, conf) in enumerate(extracted_data):
+        for i, item in enumerate(extracted_data):
+            source = item[0]
+            fields = item[1]
+            conf = item[2]
+            timestamp = item[3]
+
             # Normalize phones
             if "phones" in fields and isinstance(fields["phones"], list):
                 norm_phones, phone_transforms = normalize_phones(fields["phones"])
@@ -139,7 +146,7 @@ class Pipeline:
                 all_transformations.extend(loc_transforms)
                 normalization_results["location"] = True
 
-            extracted_data[i] = (source, fields, conf)
+            extracted_data[i] = (source, fields, conf, timestamp)
 
         self.audit.add_transformations(all_transformations)
         logger.info("Applied %d normalizations", len(all_transformations))
@@ -175,7 +182,9 @@ class Pipeline:
 
         # Track source contributions
         source_contributions: dict[str, list[str]] = {}
-        for source, fields, _ in extracted_data:
+        for item in extracted_data:
+            source = item[0]
+            fields = item[1]
             for field_name in fields:
                 if field_name not in source_contributions:
                     source_contributions[field_name] = []
@@ -419,6 +428,7 @@ class Pipeline:
     ) -> None:
         """Write the audit report to disk."""
         report = self.audit.generate_report(output, field_confidences)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         audit_path = self.output_dir / "audit_report.json"
         with open(audit_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False, default=str)
