@@ -1,0 +1,71 @@
+# ============================================================
+# Docker Compose — Candidate Intelligence Pipeline
+# ============================================================
+# Services:
+#   1. redis    — In-memory cache + Celery message broker
+#   2. web      — FastAPI server (accepts API requests)
+#   3. worker   — Celery worker (processes candidates in background)
+#
+# Usage:
+#   docker compose up --build        (start all services)
+#   docker compose down              (stop all services)
+#   docker compose logs -f worker    (watch worker processing)
+# ============================================================
+
+services:
+  # ── Redis ──────────────────────────────────────────────────
+  # Acts as both:
+  #   • Celery message broker (task queue)
+  #   • Embedding cache (semantic matcher speedup)
+  redis:
+    image: redis:7-alpine
+    container_name: candidate-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── FastAPI Web Server ─────────────────────────────────────
+  # Serves the /process endpoint for uploading candidate files.
+  # Also serves /process/bulk for triggering batch processing.
+  web:
+    build: .
+    container_name: candidate-web
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── Celery Worker ──────────────────────────────────────────
+  # Background worker that processes candidate pipelines.
+  # Pulls tasks from the Redis queue and writes output locally.
+  worker:
+    build: .
+    container_name: candidate-worker
+    command: celery -A tasks worker --loglevel=info --concurrency=4
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:

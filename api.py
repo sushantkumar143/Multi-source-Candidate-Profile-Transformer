@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -9,13 +10,14 @@ from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from pipeline import Pipeline
 
 app = FastAPI(
     title="Candidate Intelligence Pipeline API",
     description="Multi-source Candidate Profile Transformer",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 class StringLogger:
@@ -122,6 +124,86 @@ async def process_candidate(
             "audit_report": audit_data,
             "logs": log_lines,
         }
+
+
+# ── Bulk Processing (Celery) ─────────────────────────────────
+
+class BulkRequest(BaseModel):
+    """Request body for bulk processing."""
+    input_dir: str = "input/candidates"
+    output_dir: str = "output"
+    config_path: Optional[str] = None
+
+
+@app.post("/process/bulk")
+async def process_bulk(request: BulkRequest):
+    """
+    Dispatch all candidate folders to Celery workers for parallel processing.
+    Returns task IDs for tracking.
+    """
+    try:
+        from tasks import process_candidate_task
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Celery/Redis not available. Start workers first.", "detail": str(e)},
+        )
+
+    input_path = Path(request.input_dir)
+    if not input_path.exists():
+        return JSONResponse(status_code=404, content={"error": f"Input directory not found: {request.input_dir}"})
+
+    candidates = sorted([d for d in input_path.iterdir() if d.is_dir()], key=lambda p: p.name)
+    if not candidates:
+        return JSONResponse(status_code=404, content={"error": "No candidate folders found"})
+
+    # Auto-discover config
+    config = request.config_path
+    if config is None:
+        auto_config = input_path.parent / "config.json"
+        if auto_config.exists():
+            config = str(auto_config)
+
+    # Dispatch tasks to Celery workers
+    dispatched = []
+    for candidate_dir in candidates:
+        candidate_name = candidate_dir.name
+        candidate_output = Path(request.output_dir) / candidate_name
+
+        task = process_candidate_task.delay(
+            candidate_name=candidate_name,
+            input_dir=str(candidate_dir),
+            output_dir=str(candidate_output),
+            config_path=config,
+        )
+        dispatched.append({"candidate": candidate_name, "task_id": task.id})
+
+    return {
+        "status": "dispatched",
+        "total_candidates": len(dispatched),
+        "tasks": dispatched,
+        "message": f"{len(dispatched)} candidates sent to Celery workers for parallel processing.",
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker/Kubernetes."""
+    redis_status = "unknown"
+    try:
+        import redis
+        r = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"), socket_connect_timeout=1)
+        r.ping()
+        redis_status = "connected"
+    except Exception:
+        redis_status = "unavailable (in-memory fallback active)"
+
+    return {
+        "status": "healthy",
+        "version": "2.0.0",
+        "redis": redis_status,
+    }
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
