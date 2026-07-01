@@ -1,0 +1,265 @@
+{
+  "candidate_id": "4b7e121e66cc",
+  "full_name": "Sushant Kumar",
+  "primary_email": "sushant14300@gmail.com",
+  "phone": "+916207851006",
+  "skills": [
+    {
+      "name": "C++",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Python",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Java",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "React",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "FastAPI",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Docker",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "AWS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Git",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "RAG",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "LLMs",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Ruby",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "SQL",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Jenkins",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Linux",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Machine Learning",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "AI",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Hadoop",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "C",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "HTML",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "CSS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Matplotlib",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "NumPy",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "pandas",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "Seaborn",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "scikit-learn",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "FAISS",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    },
+    {
+      "name": "BM25",
+      "confidence": 0.917,
+      "sources": [
+        "csv",
+        "github",
+        "resume"
+      ]
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/sushant-kumar-97978b28b",
+    "github": "https://github.com/sushantkumar143",
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "Virtual Intern at AICTE - Edunet Foundation",
+  "location": {
+    "city": "Phagwara",
+    "region": null,
+    "country": "Punjab"
+  },
+  "years_experience": 0.2,
+  "overall_confidence": 0.697
+}

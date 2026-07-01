@@ -144,3 +144,43 @@ class TestConflictResolver:
         assert len(result.alternatives) == 1
         alt = result.alternatives[0]
         assert "score" in alt
+
+    def test_semantic_match_dedup(self):
+        """Test that company names like 'Google LLC' and 'Google' are matched semantically and deduplicated."""
+        engine = MergeEngine()
+        data = [
+            ("resume", {"experience": [{"company": "Google LLC", "title": "SWE", "start": "2020-01", "end": "2021-01"}]}, 0.8),
+            ("linkedin", {"experience": [{"company": "Google", "title": "Software Engineer", "start": "2020-01", "end": "2021-01"}]}, 0.8),
+        ]
+        merged = engine.merge(data)
+        # They should be merged into a single entry
+        assert len(merged["experience"]) == 1
+        assert merged["experience"][0]["company"] == "Google LLC"  # kept because resume is more reliable for experience
+
+    def test_field_specific_reliability(self):
+        """Test that skills prioritize GitHub source even if another source has higher general reliability."""
+        resolver = ConflictResolver()
+        result = resolver.resolve(
+            field_name="skills",
+            candidates=[
+                {"source": "csv", "value": "Java", "extraction_confidence": 0.8},
+                {"source": "github", "value": "Python", "extraction_confidence": 0.8},
+            ],
+        )
+        # For skills, github reliability is 0.90, csv is 0.70.
+        # Although csv is generally 0.80 and github is 0.75 in Settings.SOURCE_RELIABILITY,
+        # the field-specific reliability mapping must override it!
+        assert result.selected_value == "Python"
+
+    def test_freshness_scoring(self):
+        """Test that fresher source values win in conflict resolution."""
+        resolver = ConflictResolver()
+        result = resolver.resolve(
+            field_name="title",
+            candidates=[
+                {"source": "csv", "value": "Junior Developer", "extraction_confidence": 0.9, "timestamp": 1000.0},
+                {"source": "resume", "value": "Senior Developer", "extraction_confidence": 0.9, "timestamp": 2000.0},
+            ],
+        )
+        # Resume has higher timestamp (fresher), so it should win
+        assert result.selected_value == "Senior Developer"

@@ -1,0 +1,77 @@
+{
+  "processing_timestamp": "2026-07-01T01:47:34.843581+00:00",
+  "processing_duration_ms": 188,
+  "sources_detected": [
+    "candidate.csv",
+    "linkedin.txt"
+  ],
+  "total_transformations": 4,
+  "transformations": [
+    {
+      "field": "phone",
+      "type": "normalization",
+      "before": "9876543210",
+      "after": "+919876543210",
+      "success": "True"
+    },
+    {
+      "field": "phone",
+      "type": "normalization",
+      "before": "987-654-3210",
+      "after": "+919876543210",
+      "success": "True"
+    },
+    {
+      "field": "experience.start",
+      "type": "normalization",
+      "before": "Jan 2022",
+      "after": "2022-01",
+      "success": "True"
+    },
+    {
+      "field": "experience.end",
+      "type": "normalization",
+      "before": "Present",
+      "after": "None",
+      "success": "True"
+    }
+  ],
+  "duplicates_removed": [],
+  "conflicts": [],
+  "data_quality": {
+    "missing_fields": [
+      "education"
+    ],
+    "filled_fields": [
+      "full_name",
+      "emails",
+      "phones",
+      "location",
+      "links",
+      "headline",
+      "skills",
+      "experience"
+    ],
+    "conflicting_fields": [],
+    "duplicate_fields": [],
+    "profile_completeness": 0.89,
+    "total_fields": 9,
+    "filled_count": 8,
+    "missing_count": 1,
+    "warnings": []
+  },
+  "field_confidences": {
+    "full_name": 0.92,
+    "emails": 0.92,
+    "phones": 0.92,
+    "location": 0.92,
+    "links": 0.77,
+    "headline": 0.755,
+    "years_experience": 0.0,
+    "skills": 0.92,
+    "experience": 0.755,
+    "education": 0.0
+  },
+  "warnings": [],
+  "errors": []
+}

@@ -1,0 +1,62 @@
+{
+  "candidate_id": "79174590967f",
+  "full_name": "Eve Hacker",
+  "primary_email": "eve@example.com",
+  "phone": "5550100",
+  "skills": [
+    {
+      "name": "Python;Go;AWS;C++",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Rust",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Azure",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Go",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "JavaScript",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/evehacker",
+    "github": null,
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "Senior Software Engineer at Microsoft",
+  "location": {
+    "city": "New York",
+    "region": "NY",
+    "country": "US"
+  },
+  "years_experience": 5.5,
+  "overall_confidence": 0.691
+}

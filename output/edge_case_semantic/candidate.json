@@ -1,0 +1,46 @@
+{
+  "candidate_id": "67af984f7dd3",
+  "full_name": "Sushant Kumar",
+  "primary_email": "sushant@example.com",
+  "phone": "+919876543210",
+  "skills": [
+    {
+      "name": "Python;AWS",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Amazon Web Services (AWS)",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Docker",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/sk",
+    "github": null,
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "SDE II at Amazon",
+  "location": {
+    "city": "Seattle",
+    "region": "WA",
+    "country": "US"
+  },
+  "years_experience": 4.5,
+  "overall_confidence": 0.732
+}

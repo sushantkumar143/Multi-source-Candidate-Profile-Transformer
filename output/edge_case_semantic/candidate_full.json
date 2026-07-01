@@ -1,0 +1,137 @@
+{
+  "candidate_id": "67af984f7dd3",
+  "full_name": "Sushant Kumar",
+  "emails": [
+    "sushant@example.com"
+  ],
+  "phones": [
+    "+919876543210"
+  ],
+  "location": {
+    "city": "Seattle",
+    "region": "WA",
+    "country": "US"
+  },
+  "links": {
+    "linkedin": "https://linkedin.com/in/sk",
+    "github": null,
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "SDE II at Amazon",
+  "years_experience": 4.5,
+  "skills": [
+    {
+      "name": "Python;AWS",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Amazon Web Services (AWS)",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    },
+    {
+      "name": "Docker",
+      "confidence": 0.92,
+      "sources": [
+        "csv",
+        "linkedin"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Amazon",
+      "title": "Software Development Engineer II",
+      "start": "2022-01",
+      "end": null,
+      "summary": "- Developed and maintained critical backend services"
+    }
+  ],
+  "education": [],
+  "provenance": [
+    {
+      "field": "full_name",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "full_name",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "emails",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "emails",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "phones",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "phones",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "current_company",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "title",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "location",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "location",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "skills",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "skills",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "links",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "headline",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "experience",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    }
+  ],
+  "overall_confidence": 0.732
+}

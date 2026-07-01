@@ -1,0 +1,29 @@
+{
+  "candidate_id": "f71d7b723cf4",
+  "full_name": "Alice Smith",
+  "primary_email": "alice@example.com",
+  "phone": "1112223333",
+  "skills": [
+    {
+      "name": "Go;PostgreSQL",
+      "confidence": 0.77,
+      "sources": [
+        "csv"
+      ]
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/alicesmith",
+    "github": null,
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "Backend Engineer at Stripe",
+  "location": {
+    "city": "New York",
+    "region": "NY",
+    "country": "US"
+  },
+  "years_experience": 3.5,
+  "overall_confidence": 0.696
+}

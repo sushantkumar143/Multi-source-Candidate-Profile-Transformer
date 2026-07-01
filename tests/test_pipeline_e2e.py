@@ -19,10 +19,11 @@ class TestPipelineE2E:
     """End-to-end pipeline tests."""
 
     def _get_input_dir(self) -> Path:
-        return Path(__file__).parent.parent / "input"
+        return Path(__file__).parent.parent / "input" / "candidates" / "sushant_kumar"
 
     def _get_output_dir(self) -> Path:
-        return Path(__file__).parent.parent / "test_output"
+        import tempfile
+        return Path(tempfile.mkdtemp(prefix="candidate_transformer_e2e_"))
 
     def test_pipeline_runs_without_errors(self):
         """Pipeline should complete without raising exceptions."""
@@ -184,7 +185,7 @@ class TestPipelineE2E:
         output_dir = self._get_output_dir()
 
         # Use the config from input dir
-        config_path = input_dir / "config.json"
+        config_path = input_dir.parent.parent / "config.json"
 
         pipeline = Pipeline(
             input_dir=input_dir,

@@ -1,0 +1,2 @@
+name,email,phone,current_company,title,location,skills,linkedin
+Alice Smith,alice@example.com,111-222-3333,Stripe,Backend Engineer,San Francisco,Go;PostgreSQL,https://linkedin.com/in/alicesmith

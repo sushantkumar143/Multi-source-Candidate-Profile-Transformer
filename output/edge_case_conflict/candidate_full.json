@@ -1,0 +1,111 @@
+{
+  "candidate_id": "f71d7b723cf4",
+  "full_name": "Alice Smith",
+  "emails": [
+    "alice@example.com"
+  ],
+  "phones": [
+    "1112223333",
+    "+914445556666"
+  ],
+  "location": {
+    "city": "New York",
+    "region": "NY",
+    "country": "US"
+  },
+  "links": {
+    "linkedin": "https://linkedin.com/in/alicesmith",
+    "github": null,
+    "portfolio": null,
+    "other": []
+  },
+  "headline": "Backend Engineer at Stripe",
+  "years_experience": 3.5,
+  "skills": [
+    {
+      "name": "Go;PostgreSQL",
+      "confidence": 0.77,
+      "sources": [
+        "csv"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Stripe",
+      "title": "Backend Engineer",
+      "start": "2023-01",
+      "end": null,
+      "summary": null
+    }
+  ],
+  "education": [],
+  "provenance": [
+    {
+      "field": "full_name",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "full_name",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "emails",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "phones",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "phones",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "current_company",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "title",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "location",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "location",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "skills",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "links",
+      "source": "csv",
+      "method": "structured_parse"
+    },
+    {
+      "field": "headline",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    },
+    {
+      "field": "experience",
+      "source": "linkedin",
+      "method": "text_section_parse"
+    }
+  ],
+  "overall_confidence": 0.696
+}

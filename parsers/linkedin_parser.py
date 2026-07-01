@@ -283,7 +283,9 @@ class LinkedInParser(BaseParser):
                 if remaining:
                     current_entry["company"] = remaining
             elif current_entry:
-                if not current_entry.get("title") and len(line.split()) <= 8:
+                if not current_entry.get("company") and len(line.split()) <= 8:
+                    current_entry["company"] = line
+                elif not current_entry.get("title") and len(line.split()) <= 8:
                     current_entry["title"] = line
                 else:
                     summary_lines.append(line)

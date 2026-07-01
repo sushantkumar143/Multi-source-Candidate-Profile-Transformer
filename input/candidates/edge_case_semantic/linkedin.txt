@@ -1,0 +1,16 @@
+Sushant Kumar
+SDE II at Amazon
+Seattle, Washington
+
+Experience
+Jan 2022 - Present
+Amazon
+Software Development Engineer II
+- Developed and maintained critical backend services
+
+Skills
+Python, Amazon Web Services (AWS), Docker
+
+Contact
+987-654-3210
+sushant@example.com
