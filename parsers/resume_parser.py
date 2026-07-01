@@ -22,6 +22,7 @@ from typing import Any
 from parsers.base import BaseParser
 from schemas.extracted import ExtractedRecord
 from utils.helpers import extract_emails, extract_phone_numbers
+from parsers.llm_verifier import verify_profile
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,6 @@ class ResumeParser(BaseParser):
             r"career\s+history",
             r"work\s+history",
             r"internship.*",
-            r"projects.*",
         ],
         "education": [
             r"education(?:al\s+background)?",
@@ -60,6 +60,13 @@ class ResumeParser(BaseParser):
             r"competencies",
             r"tools?\s+(?:and|&)\s+technologies",
             r"tech(?:nical)?\s+stack",
+        ],
+        "projects": [
+            r"projects",
+            r"academic\s+projects",
+            r"personal\s+projects",
+            r"key\s+projects",
+            r"technical\s+projects",
         ],
     }
 
@@ -167,6 +174,10 @@ class ResumeParser(BaseParser):
             if links:
                 raw_fields["links"] = links
 
+        # Apply LLM verification
+        logger.info("Passing extracted data to LLM Verifier...")
+        raw_fields = verify_profile(text, raw_fields)
+
         logger.info(
             "Resume parsed: %d fields extracted from %s",
             len(raw_fields),
@@ -177,8 +188,8 @@ class ResumeParser(BaseParser):
             source=self.source_name,
             source_file=file_path.name,
             raw_fields=raw_fields,
-            extraction_method="pdf_text_extract",
-            extraction_confidence=0.65,
+            extraction_method="pdf_text_extract_llm_verified",
+            extraction_confidence=0.90,
         )
 
     def _empty_record(self, file_path: Path) -> ExtractedRecord:
