@@ -1,343 +1,960 @@
-# Candidate Intelligence Pipeline
+<![CDATA[<div align="center">
 
-**Multi-source Candidate Profile Transformer**
+# 🔄 Multi-Source Candidate Profile Transformer
 
-A modular, scalable, and explainable data transformation pipeline that ingests candidate information from multiple heterogeneous sources, transforms it into a canonical candidate profile, resolves conflicts intelligently, tracks provenance, computes confidence scores, validates the schema, and generates configurable output.
+**An intelligent data pipeline that ingests candidate information from multiple heterogeneous sources, resolves conflicts, normalizes data, and produces a single unified canonical JSON profile with per-field confidence scores, provenance tracking, and a full audit trail.**
 
----
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](#prerequisites)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](#api-server)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#-distributed-mode-with-docker-compose)
+[![Groq LLM](https://img.shields.io/badge/Groq-LLM%20Verified-FF6B35?logo=ai&logoColor=white)](#-when-does-the-llm-come-into-the-picture)
+[![License](https://img.shields.io/badge/License-MIT-green)](#license)
 
-## Architecture
-
-```
-Input Directory
-     │
-     ▼
-┌──────────────────┐
-│  Source Detector  │  Scans input dir, identifies file types
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────────────────────────────────────┐
-│                   PARSERS                         │
-│  CSV │ Resume (PDF) │ GitHub (JSON) │ LinkedIn    │
-│      │              │ (TXT)         │ Recruiter   │
-│      │              │               │ Notes (TXT) │
-└────────┬─────────────────────────────────────────┘
-         │  ExtractedRecord[]
-         ▼
-┌──────────────────┐
-│ Field Extractor   │  Maps raw fields → canonical names
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│   Normalizer      │  Phones → E.164, Dates → YYYY-MM,
-│                   │  Skills → canonical, Country → ISO-3166
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Merge Engine +   │  Combines sources, resolves conflicts
-│  Conflict Resolver│  via scoring formula
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Canonical Profile │  ← Single source of truth
-└────────┬─────────┘
-         │
-    ┌────┼────┐
-    ▼    ▼    ▼
-┌──────┐┌────────┐┌──────────┐
-│Confid││Proven- ││Projection│  Config-driven output
-│ence  ││ance   ││Engine    │  reshaping
-└──┬───┘└───┬────┘└────┬─────┘
-   └────────┼──────────┘
-            ▼
-    ┌───────────────┐
-    │   Validator    │
-    └───────┬───────┘
-            │
-       ┌────┴────┐
-       ▼         ▼
-  candidate  audit_report
-    .json      .json
-```
-
-## Pipeline Stages
-
-| # | Stage | Description |
-|---|-------|-------------|
-| 1 | Source Detection | Scan input directory, identify files, match parsers |
-| 2 | Parsing | Extract raw data into `ExtractedRecord` objects |
-| 3 | Field Extraction | Map raw field names to canonical names |
-| 4 | Normalization | Phones → E.164, dates → YYYY-MM, skills → canonical, country → ISO-3166 |
-| 5 | Merging | Combine data from all sources, resolve conflicts with scoring |
-| 6 | Confidence | Compute per-field and overall confidence (deterministic, explainable) |
-| 7 | Provenance | Track where each value came from and how it was derived |
-| 8 | Projection | Apply runtime config to reshape output |
-| 9 | Validation | Validate output against schema |
-| 10 | Output | Write `candidate.json` + `audit_report.json` |
+</div>
 
 ---
 
-## Folder Structure
+## 📑 Table of Contents
+
+- [Overview](#-overview)
+- [Complete Pipeline Flow (Interactive Diagram)](#-complete-pipeline-flow)
+- [Architecture](#-architecture)
+- [Input Format](#-input-format)
+- [Output Format](#-output-format)
+- [Conflict Resolution — How It Works](#-conflict-resolution--how-it-works)
+- [When Does the LLM Come Into the Picture?](#-when-does-the-llm-come-into-the-picture)
+- [Semantic Matching & Deduplication](#-semantic-matching--deduplication)
+- [Confidence Scoring](#-confidence-scoring)
+- [How to Run the Project](#-how-to-run-the-project)
+  - [Prerequisites](#prerequisites)
+  - [Local CLI Mode](#-option-1-local-cli-mode-single-machine)
+  - [Distributed Docker Compose Mode](#-option-2-distributed-mode-with-docker-compose)
+  - [When to Use Which Mode](#-when-to-use-which-mode)
+- [Runtime Configuration (config.json)](#-runtime-configuration)
+- [Testing](#-testing)
+- [Project Structure](#-project-structure)
+- [Design Decisions](#-design-decisions)
+
+---
+
+## 🌟 Overview
+
+Recruiting teams collect candidate data from **multiple, overlapping, sometimes contradictory sources** — a CSV from the ATS, a PDF resume, a scraped LinkedIn profile, a GitHub profile, and freeform recruiter notes. This pipeline **automatically fuses** all of them into one clean, deduplicated, confidence-scored JSON profile.
+
+### Key Capabilities
+
+| Capability | Description |
+|---|---|
+| **5 Source Parsers** | CSV, Resume (PDF), GitHub (JSON/web), LinkedIn (TXT), Recruiter Notes (TXT) |
+| **LLM Verification** | Groq-powered verification of resume parsing to correct extraction errors |
+| **Semantic Matching** | SentenceTransformer + TF-IDF + difflib cascade for deduplication |
+| **Conflict Resolution** | Weighted scoring formula using source reliability, agreement, freshness, extraction confidence |
+| **Normalization** | Phones → E.164, dates → YYYY-MM, skills → canonical names, locations → structured objects |
+| **Confidence Scoring** | Deterministic per-field and overall confidence (0.0–1.0) |
+| **Provenance Tracking** | Every field traces back to its source(s) and extraction method |
+| **Output Projection** | Runtime `config.json` reshapes the output without modifying the canonical profile |
+| **Audit Trail** | Complete `audit_report.json` with every transformation, conflict, and deduplication logged |
+| **Distributed Processing** | Docker Compose + Celery + Redis for parallel bulk candidate processing |
+
+---
+
+## 🔁 Complete Pipeline Flow
+
+The following diagram shows the **end-to-end flow** of how data moves through the system, from raw input files to the final JSON output:
+
+```mermaid
+flowchart TB
+    subgraph INPUT["📂 INPUT SOURCES"]
+        CSV["candidate.csv<br/><i>Structured ATS data</i>"]
+        RESUME["resume.pdf<br/><i>Unstructured PDF</i>"]
+        GITHUB["links.json → GitHub Scrape<br/><i>Public profile + repos</i>"]
+        LINKEDIN["linkedin.txt<br/><i>Scraped LinkedIn profile</i>"]
+        NOTES["recruiter_notes.txt<br/><i>Free-form notes</i>"]
+    end
+
+    subgraph STAGE1["Stage 1: Source Detection & Parsing"]
+        REG["Parser Registry<br/><i>Auto-detects file types</i>"]
+        CSV_P["CsvParser"]
+        RES_P["ResumeParser"]
+        GH_P["GithubWebParser"]
+        LI_P["LinkedInParser"]
+        RN_P["RecruiterNotesParser"]
+    end
+
+    subgraph LLM_BLOCK["🤖 LLM Verification Layer"]
+        LLM["Groq API<br/><i>llama-3.1-70b-versatile</i><br/><br/>Verifies & corrects<br/>resume parsed fields<br/><br/>Multi-key fallback<br/>Temperature = 0.0"]
+    end
+
+    subgraph STAGE2["Stage 2: Field Extraction"]
+        EXTRACT["Field Extractor<br/><i>Maps raw fields → canonical names</i>"]
+    end
+
+    subgraph STAGE3["Stage 3: Normalization"]
+        PHONE_N["Phone Normalizer<br/><i>→ E.164 format</i>"]
+        DATE_N["Date Normalizer<br/><i>→ YYYY-MM format</i>"]
+        SKILL_N["Skill Normalizer<br/><i>→ Canonical names</i>"]
+        LOC_N["Location Normalizer<br/><i>→ city/region/country</i>"]
+    end
+
+    subgraph STAGE4["Stage 4: Merging + Conflict Resolution"]
+        MERGE["Merge Engine"]
+        SEM["Semantic Matcher<br/><i>SentenceTransformer + TF-IDF</i>"]
+        CONFLICT["Conflict Resolver<br/><i>Weighted scoring formula</i>"]
+        DEDUP["Post-Merge Deduplicator<br/><i>Emails, phones, skills</i>"]
+    end
+
+    subgraph STAGE5["Stage 5-7: Enrichment"]
+        CANON["Build Canonical Profile<br/><i>Pydantic CanonicalProfile</i>"]
+        CONF["Confidence Engine<br/><i>Per-field + overall scores</i>"]
+        PROV["Provenance Tracker<br/><i>Field → source mapping</i>"]
+    end
+
+    subgraph STAGE8["Stage 8-9: Output Shaping"]
+        PROJ["Projection Engine<br/><i>Apply config.json reshaping</i>"]
+        VALID["Schema Validator<br/><i>Validate output structure</i>"]
+    end
+
+    subgraph OUTPUT["📤 OUTPUT"]
+        CAND["candidate.json<br/><i>Projected output</i>"]
+        FULL["candidate_full.json<br/><i>Complete canonical profile</i>"]
+        AUDIT["audit_report.json<br/><i>Transformations + conflicts</i>"]
+    end
+
+    CONFIG["⚙️ config.json<br/><i>Runtime projection config</i>"]
+
+    CSV --> REG
+    RESUME --> REG
+    GITHUB --> REG
+    LINKEDIN --> REG
+    NOTES --> REG
+
+    REG --> CSV_P
+    REG --> RES_P
+    REG --> GH_P
+    REG --> LI_P
+    REG --> RN_P
+
+    RES_P -.->|"Passes extracted fields<br/>for verification"| LLM
+    LLM -.->|"Returns corrected JSON"| RES_P
+
+    CSV_P --> EXTRACT
+    RES_P --> EXTRACT
+    GH_P --> EXTRACT
+    LI_P --> EXTRACT
+    RN_P --> EXTRACT
+
+    EXTRACT --> PHONE_N
+    EXTRACT --> DATE_N
+    EXTRACT --> SKILL_N
+    EXTRACT --> LOC_N
+
+    PHONE_N --> MERGE
+    DATE_N --> MERGE
+    SKILL_N --> MERGE
+    LOC_N --> MERGE
+
+    MERGE --> SEM
+    MERGE --> CONFLICT
+    MERGE --> DEDUP
+
+    DEDUP --> CANON
+    CANON --> CONF
+    CONF --> PROV
+
+    PROV --> PROJ
+    CONFIG --> PROJ
+    PROJ --> VALID
+
+    VALID --> CAND
+    VALID --> FULL
+    VALID --> AUDIT
+
+    style LLM_BLOCK fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
+    style INPUT fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    style OUTPUT fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    style STAGE4 fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+```
+
+### Step-by-Step Walkthrough
+
+| Stage | What Happens | Key Decision |
+|---|---|---|
+| **1. Source Detection** | The Parser Registry scans the input directory. Each file is tested against 5 registered parsers (CSV, Resume, GitHub, LinkedIn, Recruiter Notes). First match wins. | Plug-and-play — add a new parser in 1 file, register it in the registry. |
+| **2. Field Extraction** | Raw parsed fields are mapped to canonical names (e.g., `name` → `full_name`, `phone` → `phones`). | Standardizes heterogeneous field names from different sources. |
+| **🤖 LLM Verification** | **Only for resume.pdf**: The deterministic parser's output is sent to Groq LLM for verification/correction. See [LLM section](#-when-does-the-llm-come-into-the-picture). | Catches regex parser mistakes without hallucinating new data. |
+| **3. Normalization** | Phones → E.164 (`+916207851006`), dates → YYYY-MM (`2025-09`), skills → canonical (`ML` → `Machine Learning`), locations → structured `{city, region, country}`. | Every transformation is logged in the audit trail. |
+| **4. Merging** | Data from all sources is combined. **Scalar fields** use conflict resolution. **List fields** (skills, emails) use semantic union. **Structured lists** (experience, education) use semantic deduplication. | See [Conflict Resolution](#-conflict-resolution--how-it-works). |
+| **5. Canonical Profile** | A Pydantic `CanonicalProfile` model is built from the merged data. This is the single source of truth. | Never modified by runtime config — only the projected output changes. |
+| **6. Confidence Scoring** | Deterministic per-field confidence using weighted formula (source reliability, agreement, extraction confidence, normalization, conflicts). | See [Confidence Scoring](#-confidence-scoring). |
+| **7. Provenance** | Each field is annotated with which source(s) contributed it and what extraction method was used. | Full traceability for auditing. |
+| **8. Projection** | The `config.json` reshapes the output (rename fields, select subsets, flatten arrays). | The canonical profile is untouched; only the output view changes. |
+| **9. Validation** | The final output is validated against the expected schema. Warnings and errors are recorded. | Catches structural issues before writing to disk. |
+| **10. Output** | Three files are written: `candidate.json` (projected), `candidate_full.json` (complete), `audit_report.json` (audit trail). | — |
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+graph LR
+    subgraph Core["Core Pipeline (pipeline.py)"]
+        direction TB
+        A["Parsers"] --> B["Extractors"]
+        B --> C["Normalizers"]
+        C --> D["Merger"]
+        D --> E["Confidence"]
+        E --> F["Provenance"]
+        F --> G["Projector"]
+        G --> H["Validator"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        CLI["app.py<br/>CLI Entry"]
+        API["api.py<br/>FastAPI Server"]
+        CELERY["tasks.py<br/>Celery Worker"]
+        REDIS["Redis<br/>Broker + Cache"]
+    end
+
+    CLI --> Core
+    API --> Core
+    CELERY --> Core
+    REDIS -.-> CELERY
+
+    style Core fill:#E8EAF6,stroke:#283593
+    style Infra fill:#FFF3E0,stroke:#E65100
+```
+
+The architecture follows a **clean separation of concerns**:
+
+- **`app.py`** — CLI entry point. Zero business logic. Parses args, delegates to `Pipeline`.
+- **`api.py`** — FastAPI server for HTTP-based processing and bulk dispatch.
+- **`pipeline.py`** — Orchestrator. The **only file** that knows about all stages.
+- **Each stage** (parsers, extractors, normalizers, merger, etc.) is in its own module and is independently testable.
+
+---
+
+## 📥 Input Format
+
+### Supported Source Files
+
+Place these files inside a candidate folder (e.g., `input/candidates/john_doe/`):
+
+| File | Format | Description | Required? |
+|---|---|---|---|
+| `candidate.csv` | CSV | Structured ATS data with columns: `name`, `email`, `phone`, `current_company`, `title`, `location`, `skills`, `linkedin` | No |
+| `resume.pdf` | PDF | Unstructured resume. Parsed via `pdfplumber` + regex section detection + **LLM verification** | No |
+| `links.json` | JSON | Contains `github_url` key — the pipeline scrapes the GitHub profile live | No |
+| `linkedin.txt` | TXT | Scraped/copy-pasted LinkedIn profile text | No |
+| `recruiter_notes.txt` | TXT | Free-form recruiter observations and notes | No |
+| `config.json` | JSON | Output projection configuration (optional, can be at parent level) | No |
+
+> **Note:** At least one source file must be present. The pipeline auto-detects which files exist and only parses those.
+
+### Example Input Structure
 
 ```
-candidate_intelligence_pipeline/
-├── app.py                          # CLI entry point (Typer)
-├── pipeline.py                     # Pipeline orchestrator
-├── config/
-│   ├── settings.py                 # Source reliability, conflict weights, skill mapping
-│   └── loader.py                   # Load & validate config.json
-├── input/                          # Sample input files
-│   ├── candidate.csv               # Structured source
-│   ├── github_profile.json         # GitHub profile (simulated API response)
-│   ├── linkedin.txt                # LinkedIn text export
-│   ├── recruiter_notes.txt         # Free-text recruiter notes
-│   ├── resume.pdf                  # PDF resume
-│   └── config.json                 # Runtime config for output projection
-├── output/                         # Generated outputs
-├── schemas/
-│   ├── extracted.py                # ExtractedRecord model
-│   ├── canonical.py                # CanonicalProfile model
-│   ├── config_schema.py            # RuntimeConfig model
-│   └── output_schema.py            # Output validation
-├── parsers/
-│   ├── base.py                     # Abstract BaseParser
-│   ├── csv_parser.py               # CSV structured parser
-│   ├── resume_parser.py            # PDF resume parser
-│   ├── github_parser.py            # GitHub profile parser
-│   ├── linkedin_parser.py          # LinkedIn text parser
-│   ├── recruiter_notes_parser.py   # Recruiter notes parser
-│   └── registry.py                 # Parser registry (plug-and-play)
-├── extractors/
-│   └── field_extractor.py          # Raw → canonical field mapping
-├── normalizers/
-│   ├── phone_normalizer.py         # Phone → E.164
-│   ├── date_normalizer.py          # Date → YYYY-MM
-│   ├── skill_normalizer.py         # Skill → canonical name
-│   ├── location_normalizer.py      # Country → ISO-3166 alpha-2
-│   └── deduplicator.py             # Remove duplicates
-├── merger/
-│   ├── merge_engine.py             # Multi-source merge logic
-│   └── conflict_resolver.py        # Score-based conflict resolution
-├── confidence/
-│   └── confidence_engine.py        # Deterministic confidence scoring
-├── provenance/
-│   └── provenance_tracker.py       # Field-level provenance tracking
-├── projector/
-│   └── projection_engine.py        # Config-driven output projection
-├── validator/
-│   └── schema_validator.py         # Output validation
-├── audit/
-│   └── audit_engine.py             # Audit report generation
-├── utils/
-│   ├── logger.py                   # Structured logging
-│   └── helpers.py                  # Shared utilities
-├── tests/
-│   ├── test_phone_normalizer.py
-│   ├── test_merge_engine.py
-│   ├── test_confidence_engine.py
-│   ├── test_projection_engine.py
-│   └── test_pipeline_e2e.py
-├── requirements.txt
-└── README.md
+input/
+├── config.json                    # Shared config (applied to all candidates)
+└── candidates/
+    ├── sushant_kumar/
+    │   ├── candidate.csv
+    │   ├── resume.pdf
+    │   ├── links.json             # {"github_url": "https://github.com/sushantkumar143"}
+    │   ├── linkedin.txt
+    │   └── recruiter_notes.txt
+    ├── jane_doe/
+    │   ├── candidate.csv
+    │   └── resume.pdf
+    └── edge_case_conflict/
+        ├── candidate.csv          # Says "San Francisco"
+        ├── resume.pdf             # Says "SF Bay Area"
+        └── linkedin.txt           # Says "San Francisco, CA"
+```
+
+### Sample `candidate.csv`
+
+```csv
+name,email,phone,current_company,title,location,skills,linkedin
+Sushant Kumar,sushant14300@gmail.com,+91-6207851006,AICTE - Edunet Foundation,Virtual Intern,"Phagwara, Punjab","C++, Python, Java, JavaScript, React, FastAPI, Docker, AWS, Git, RAG, LLMs",https://linkedin.com/in/sushant-kumar-97978b28b
+```
+
+### Sample `links.json`
+
+```json
+{
+  "github_url": "https://github.com/sushantkumar143"
+}
 ```
 
 ---
 
-## How to Run
+## 📤 Output Format
+
+The pipeline produces **three output files** per candidate:
+
+### 1. `candidate.json` — Projected Output
+
+This is the **primary output**, shaped by your `config.json`. Example:
+
+```json
+{
+  "candidate_id": "4b7e121e66cc",
+  "full_name": "Sushant Kumar",
+  "primary_email": "sushant14300@gmail.com",
+  "phone": "+916207851006",
+  "skills": [
+    {
+      "name": "Python",
+      "confidence": 0.917,
+      "sources": ["csv", "github", "resume"]
+    },
+    {
+      "name": "Docker",
+      "confidence": 0.917,
+      "sources": ["csv", "github", "resume"]
+    }
+  ],
+  "links": {
+    "linkedin": "https://linkedin.com/in/sushant-kumar-97978b28b",
+    "github": "https://github.com/sushantkumar143"
+  },
+  "headline": "Virtual Intern at AICTE - Edunet Foundation",
+  "location": {
+    "city": "Phagwara",
+    "region": null,
+    "country": "Punjab"
+  },
+  "years_experience": 0.2,
+  "overall_confidence": 0.697
+}
+```
+
+### 2. `candidate_full.json` — Complete Canonical Profile
+
+The unprojected, full canonical profile with **all fields**, including provenance and per-field confidence. Useful for debugging and downstream integrations.
+
+### 3. `audit_report.json` — Audit Trail
+
+A detailed record of everything the pipeline did:
+
+```json
+{
+  "processing_timestamp": "2026-07-01T03:55:28.084662+00:00",
+  "processing_duration_ms": 33838,
+  "sources_detected": ["candidate.csv", "links.json", "resume.pdf"],
+  "total_transformations": 13,
+  "transformations": [
+    { "field": "phone", "type": "normalization", "before": "+91-6207851006", "after": "+916207851006" },
+    { "field": "skill", "type": "normalization", "before": "ML", "after": "Machine Learning" },
+    { "field": "experience.start", "type": "normalization", "before": "Sep 2025", "after": "2025-09" }
+  ],
+  "conflicts": [],
+  "data_quality": {
+    "profile_completeness": 1.0,
+    "filled_count": 9,
+    "missing_count": 0
+  },
+  "field_confidences": {
+    "full_name": 0.82,
+    "emails": 0.917,
+    "skills": 0.917,
+    "experience": 0.69
+  }
+}
+```
+
+---
+
+## ⚔️ Conflict Resolution — How It Works
+
+When the **same field** has **different values** across sources, the Conflict Resolver kicks in.
+
+### Example Conflict
+
+| Source | `full_name` value |
+|---|---|
+| CSV | `Sushant Kumar` |
+| Resume | `SUSHANT KUMAR` |
+| LinkedIn | `Sushant K.` |
+
+### Resolution Formula
+
+Each conflicting value is scored using this **weighted formula**:
+
+```
+Score = (Source Reliability × 0.30)
+      + (Agreement Ratio   × 0.25)
+      + (Extraction Conf.  × 0.20)
+      + (Data Freshness    × 0.15)
+      - (Conflict Penalty  × 0.10)
+```
+
+```mermaid
+pie title Conflict Resolution Weight Distribution
+    "Source Reliability" : 30
+    "Agreement Ratio" : 25
+    "Extraction Confidence" : 20
+    "Data Freshness" : 15
+    "Conflict Penalty" : 10
+```
+
+### Factor Breakdown
+
+| Factor | What It Measures | How It's Computed |
+|---|---|---|
+| **Source Reliability** | How trustworthy is this source *for this specific field*? | Field-specific reliability matrix (e.g., LinkedIn is 0.85 for `full_name`, but GitHub is only 0.60) |
+| **Agreement Ratio** | How many sources agree on this value? | `agreeing_sources / total_sources` — majority wins |
+| **Extraction Confidence** | How confident was the parser in extracting this value? | Parser-assigned confidence (PDF regex = 0.70, CSV structured = 0.80, LLM-verified = 0.90) |
+| **Data Freshness** | How recently was this source file modified? | Normalized file modification timestamp (0.0 = oldest, 1.0 = newest) |
+| **Conflict Penalty** | Penalty for having many conflicting values | `(unique_values - 1) / unique_values` — more disagreement = higher penalty |
+
+### Field-Specific Source Reliability Matrix
+
+The system uses a **field-specific reliability matrix** — not just one reliability score per source:
+
+| Field | CSV | LinkedIn | Resume | GitHub | Recruiter Notes |
+|---|---|---|---|---|---|
+| `full_name` | 0.90 | 0.85 | 0.70 | 0.60 | 0.50 |
+| `emails` | 0.95 | 0.90 | 0.85 | 0.90 | 0.50 |
+| `skills` | 0.70 | 0.85 | 0.80 | **0.90** | 0.50 |
+| `experience` | 0.60 | 0.80 | **0.85** | 0.40 | 0.50 |
+| `links` | 0.80 | 0.90 | 0.85 | **0.95** | 0.50 |
+
+> **Design rationale:** GitHub is the *most* reliable for skills and links (objectively verifiable from repos), while the resume is most reliable for experience details (self-authored, detailed descriptions).
+
+### What Gets Conflict-Resolved vs. Merged
+
+| Field Type | Strategy | Example |
+|---|---|---|
+| **Scalar fields** (`full_name`, `headline`) | Conflict resolution (scoring formula) | Pick "Sushant Kumar" over "SUSHANT KUMAR" |
+| **List fields** (`skills`, `emails`, `phones`) | Semantic union (keep all unique values) | Merge `[Python, JS]` + `[Python, React]` → `[Python, JS, React]` |
+| **Structured lists** (`experience`, `education`) | Semantic deduplication + enrichment | Two "Google" entries from different sources → merged into one richer entry |
+| **Dict fields** (`links`, `location`) | Deep merge by source reliability | Higher-reliability source's keys take priority |
+
+---
+
+## 🤖 When Does the LLM Come Into the Picture?
+
+The LLM is used at **exactly one point** in the pipeline — as a **verification layer for resume PDF parsing**.
+
+```mermaid
+flowchart LR
+    PDF["resume.pdf"] --> PDFPLUMBER["pdfplumber<br/><i>Extract raw text</i>"]
+    PDFPLUMBER --> REGEX["Regex Parser<br/><i>Section detection<br/>Pattern matching</i>"]
+    REGEX --> PARSED["Parsed JSON<br/><i>Deterministic but<br/>may have errors</i>"]
+    PARSED --> LLM["🤖 Groq LLM<br/><i>Verify & correct</i>"]
+    LLM --> VERIFIED["Verified JSON<br/><i>Higher confidence<br/>(0.90 vs 0.70)</i>"]
+
+    style LLM fill:#FFF3E0,stroke:#FF9800,stroke-width:3px
+    style VERIFIED fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+```
+
+### Why Only for Resumes?
+
+| Source | Parser Type | Why No LLM? |
+|---|---|---|
+| **CSV** | Structured (column mapping) | Already highly structured — no ambiguity |
+| **GitHub** | JSON/web scraping | Structured API data — deterministic |
+| **LinkedIn** | Text pattern matching | Semi-structured — regex is sufficient |
+| **Recruiter Notes** | NLP keyword extraction | Low reliability anyway — LLM won't help much |
+| **Resume (PDF)** ✅ | **Unstructured text → regex** | **Regex can misparse sections, miss fields, or split entries incorrectly. The LLM acts as a verifier.** |
+
+### How the LLM Verifier Works
+
+1. **Input**: The raw resume text + the deterministic parser's JSON output are sent together.
+2. **Prompt**: The LLM is instructed to:
+   - Verify each parsed field against the raw text
+   - Correct errors (but **ONLY** based on what's explicitly in the text)
+   - **Never hallucinate** — if a value can't be verified, leave it as-is or null
+   - Exclude academic/personal projects from the `experience` section
+3. **Output**: Corrected JSON in the exact same structure.
+4. **Confidence Boost**: LLM-verified parsing gets a confidence of **0.90** vs **0.70** for regex-only.
+
+### LLM Fallback Chain
+
+```
+Groq API Key 1 + llama-3.1-70b-versatile
+    ↓ (on failure)
+Groq API Key 1 + llama-3.1-8b-instant
+    ↓ (on failure)
+Groq API Key 2 + llama-3.1-70b-versatile
+    ↓ (on failure)
+Groq API Key 2 + llama-3.1-8b-instant
+    ↓ ... (up to 3 keys × 2 models = 6 attempts)
+    ↓ (all fail)
+Return original regex-parsed JSON (graceful degradation)
+```
+
+> **Important:** If no Groq API key is provided, the pipeline **still works** — it just uses the deterministic regex parser with lower confidence (0.70). The LLM is an **enhancement**, not a requirement.
+
+### Providing Groq API Keys
+
+```bash
+# Set one or more Groq API keys as environment variables
+export GROQ_API_KEY_1="gsk_your_primary_key_here"
+export GROQ_API_KEY_2="gsk_your_backup_key_here"       # Optional backup
+export GROQ_API_KEY_3="gsk_your_tertiary_key_here"     # Optional backup
+
+# Then run the pipeline
+python app.py --input input/candidates
+```
+
+On **Windows (PowerShell)**:
+```powershell
+$env:GROQ_API_KEY_1 = "gsk_your_primary_key_here"
+$env:GROQ_API_KEY_2 = "gsk_your_backup_key_here"
+python app.py --input input/candidates
+```
+
+> 🔑 **Get your free API key at [console.groq.com](https://console.groq.com)**. The free tier provides generous rate limits sufficient for this pipeline.
+
+---
+
+## 🔗 Semantic Matching & Deduplication
+
+The pipeline uses a **three-tier similarity cascade** to determine if two values are semantically equivalent:
+
+```mermaid
+flowchart TD
+    A["Compare two strings"] --> B{"Exact match<br/>(case-insensitive)?"}
+    B -->|Yes| MATCH["✅ Match"]
+    B -->|No| C{"Substring check<br/>'Google LLC' contains 'Google'?"}
+    C -->|Yes| MATCH
+    C -->|No| D["SentenceTransformer<br/><i>all-MiniLM-L6-v2</i><br/>Cosine similarity"]
+    D -->|"sim > 0.80"| MATCH
+    D -->|"sim ≤ 0.80"| E["TF-IDF Char N-Gram<br/><i>3-5 character n-grams</i><br/>Cosine similarity"]
+    E -->|"sim > 0.75"| MATCH
+    E -->|"sim ≤ 0.75"| F["difflib SequenceMatcher"]
+    F -->|"ratio > 0.85"| MATCH
+    F -->|"ratio ≤ 0.85"| NOMATCH["❌ Not a match"]
+
+    style MATCH fill:#C8E6C9,stroke:#2E7D32
+    style NOMATCH fill:#FFCDD2,stroke:#C62828
+```
+
+This cascade ensures:
+- **Fast path**: Exact/substring matches are caught immediately (O(1)).
+- **Robust fallback**: Even if SentenceTransformers can't load (offline environment), TF-IDF and difflib still work as fully offline fallbacks.
+
+### Where Semantic Matching Is Used
+
+- **Skill deduplication**: `"React.js"` ≡ `"ReactJS"` ≡ `"React"`
+- **Experience merging**: Two entries from different sources about the same job (matched by company name + title) are merged into one richer entry
+- **Education merging**: `"MIT"` ≡ `"Massachusetts Institute of Technology"`
+
+---
+
+## 📊 Confidence Scoring
+
+Every field gets a **deterministic, explainable confidence score** (0.0–1.0):
+
+```
+FieldConfidence = (Source Reliability  × 0.30)
+               + (Agreement Ratio     × 0.30)
+               + (Extraction Conf.    × 0.20)
+               + (Normalization OK    × 0.10)
+               + (No Conflicts        × 0.10)
+```
+
+**Overall profile confidence** = weighted mean of field confidences × completeness factor.
+
+---
+
+## 🚀 How to Run the Project
 
 ### Prerequisites
-- Python 3.11+
-- pip
 
-### Installation
+- **Python 3.10+**
+- **pip** (package manager)
+- **Groq API Key** (for LLM verification — optional but recommended)
+- **Docker & Docker Compose** (only for distributed mode)
+
+### ⚡ Option 1: Local CLI Mode (Single Machine)
+
+Best for: **1–10 candidates**, quick testing, development.
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/sushantkumar143/Multi-source-Candidate-Profile-Transformer.git
+cd Multi-source-Candidate-Profile-Transformer
+
+# 2. Install dependencies
 pip install -r requirements.txt
+
+# 3. Set your Groq API key (optional but recommended)
+export GROQ_API_KEY_1="gsk_your_key_here"          # Linux/Mac
+# $env:GROQ_API_KEY_1 = "gsk_your_key_here"        # Windows PowerShell
+
+# 4. Run the pipeline
+python app.py --input input/candidates
 ```
 
-### Generate Sample Resume (first time)
+#### CLI Options
+
 ```bash
-pip install reportlab
-python generate_resume.py
+# Process a single candidate folder
+python app.py --input input/candidates/sushant_kumar
+
+# Process all candidates in a folder (batch mode)
+python app.py --input input/candidates
+
+# Specify custom config and output directory
+python app.py --input input/candidates --config input/config.json --output my_output/
+
+# Verbose logging
+python app.py --input input/candidates --log-level DEBUG
+
+# Write logs to a file
+python app.py --input input/candidates --log-file pipeline.log
 ```
 
-### Run the Pipeline
-```bash
-# Default (all canonical fields, auto-discovers config.json)
-python app.py --input input/
+#### Full CLI Reference
 
-# With explicit config
-python app.py --input input/ --config input/config.json
+| Flag | Short | Description | Default |
+|---|---|---|---|
+| `--input` | `-i` | Path to input directory (required) | — |
+| `--config` | `-c` | Path to config.json | Auto-discovered in input dir |
+| `--output` | `-o` | Path to output directory | `output/` |
+| `--log-level` | `-l` | Logging level: DEBUG, INFO, WARNING, ERROR | `INFO` |
+| `--log-file` | — | Write logs to a file | None (stdout only) |
 
-# With custom output directory
-python app.py --input input/ --output results/
+#### How Batch Mode Works
 
-# With debug logging
-python app.py --input input/ --log-level DEBUG
+If the input directory contains **subdirectories**, the pipeline automatically enters **batch mode** and processes each subdirectory as a separate candidate:
+
+```
+input/candidates/           ← You point --input here
+├── sushant_kumar/          ← Processed as candidate 1
+├── jane_doe/               ← Processed as candidate 2
+└── edge_case_conflict/     ← Processed as candidate 3
 ```
 
-### Run Tests
 ```bash
-pytest tests/ -v
+$ python app.py --input input/candidates
+
+[INFO] Found 3 candidate folders. Running batch mode...
+Processing candidate: sushant_kumar
+Processing candidate: jane_doe
+Processing candidate: edge_case_conflict
+
+[INFO] Batch complete. Successfully processed 3/3 candidates.
+```
+
+Output is organized per-candidate:
+```
+output/
+├── sushant_kumar/
+│   ├── candidate.json
+│   ├── candidate_full.json
+│   └── audit_report.json
+├── jane_doe/
+│   └── ...
+└── edge_case_conflict/
+    └── ...
 ```
 
 ---
 
-## Canonical Profile Schema
+### 🐳 Option 2: Distributed Mode with Docker Compose
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `candidate_id` | `string` | Deterministic SHA-256 hash |
-| `full_name` | `string` | |
-| `emails` | `string[]` | Deduplicated, lowercase |
-| `phones` | `string[]` | E.164 format |
-| `location` | `{city, region, country}` | Country: ISO-3166 alpha-2 |
-| `links` | `{linkedin, github, portfolio, other[]}` | |
-| `headline` | `string \| null` | |
-| `years_experience` | `number \| null` | Computed from experience dates |
-| `skills` | `[{name, confidence, sources[]}]` | Canonical skill names |
-| `experience` | `[{company, title, start, end, summary}]` | Dates as YYYY-MM |
-| `education` | `[{institution, degree, field, end_year}]` | |
-| `provenance` | `[{field, source, method}]` | Where each value came from |
-| `overall_confidence` | `number` | 0.0 – 1.0 |
+Best for: **10+ candidates**, production deployments, when you need **parallel/concurrent processing**.
+
+The distributed mode uses a **three-service architecture**:
+
+```mermaid
+graph LR
+    subgraph Docker["Docker Compose Cluster"]
+        WEB["🌐 FastAPI Web Server<br/><i>Accepts requests</i><br/><i>Port 8000</i>"]
+        WORKER["⚙️ Celery Worker<br/><i>Processes pipelines</i><br/><i>Concurrency: 4</i>"]
+        REDIS["📦 Redis<br/><i>Message broker</i><br/><i>+ Result backend</i>"]
+    end
+
+    USER["👤 User / Script"] -->|"POST /process/bulk"| WEB
+    WEB -->|"Dispatch tasks"| REDIS
+    REDIS -->|"Pull tasks"| WORKER
+    WORKER -->|"Write results"| OUTPUT["📂 output/"]
+    WORKER -->|"Store status"| REDIS
+
+    style Docker fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    style REDIS fill:#FFCDD2,stroke:#C62828
+```
+
+#### How It Works
+
+1. **Redis** acts as the Celery message broker (task queue) and result backend.
+2. **FastAPI Web Server** exposes HTTP endpoints for submitting candidates.
+3. **Celery Worker** pulls tasks from the Redis queue and processes each candidate folder through the full pipeline **in parallel** (default concurrency: 4 workers).
+
+#### Step-by-Step Setup
+
+```bash
+# 1. Make sure Docker and Docker Compose are installed
+docker --version
+docker compose version
+
+# 2. Set your Groq API key in the environment (optional)
+export GROQ_API_KEY_1="gsk_your_key_here"
+
+# 3. Place your candidate folders in input/candidates/
+#    Each candidate should be a subdirectory with source files.
+
+# 4. Build and start all services
+docker compose up --build
+
+# 5. (In a new terminal) Dispatch bulk processing
+python bulk_dispatch.py --input input/candidates
+
+# 6. Watch the worker logs
+docker compose logs -f worker
+
+# 7. When done, stop all services
+docker compose down
+```
+
+#### Alternative: Use the API Directly
+
+Instead of the CLI dispatcher, you can use the REST API:
+
+```bash
+# Process a single candidate via file upload
+curl -X POST http://localhost:8000/process \
+  -F "resume=@input/candidates/sushant_kumar/resume.pdf" \
+  -F "csv=@input/candidates/sushant_kumar/candidate.csv" \
+  -F "links=@input/candidates/sushant_kumar/links.json"
+
+# Dispatch bulk processing to Celery workers
+curl -X POST http://localhost:8000/process/bulk \
+  -H "Content-Type: application/json" \
+  -d '{"input_dir": "input/candidates", "output_dir": "output"}'
+
+# Health check
+curl http://localhost:8000/health
+```
+
+#### Docker Compose Services
+
+| Service | Container | Role | Port |
+|---|---|---|---|
+| `redis` | `candidate-redis` | Message broker + result backend | 6379 |
+| `web` | `candidate-web` | FastAPI server (accepts requests) | 8000 |
+| `worker` | `candidate-worker` | Celery worker (processes pipelines) | — |
+
+#### Celery Worker Configuration
+
+The worker is configured for **reliability**:
+
+| Setting | Value | Why |
+|---|---|---|
+| `concurrency` | 4 | Process 4 candidates simultaneously |
+| `task_acks_late` | True | If worker crashes, task is re-queued |
+| `worker_prefetch_multiplier` | 1 | Don't hoard tasks; fair distribution |
+| `max_retries` | 2 | Auto-retry failed tasks with exponential backoff |
+| `result_expires` | 3600s | Clean up results after 1 hour |
 
 ---
 
-## Runtime Configuration
+### 📋 When to Use Which Mode
 
-The config file reshapes the output without changing the canonical profile:
+```mermaid
+flowchart TD
+    START["How many candidates?"] --> FEW{"1–10 candidates?"}
+    FEW -->|Yes| CLI["⚡ Use CLI Mode<br/><code>python app.py --input input/candidates</code>"]
+    FEW -->|No| MANY{"10–100+ candidates?"}
+    MANY -->|Yes| DOCKER["🐳 Use Docker Compose<br/><code>docker compose up --build</code>"]
+    MANY -->|No| HUGE{"1000+ candidates?"}
+    HUGE -->|Yes| SCALE["🐳 Docker Compose<br/>+ Scale workers<br/><code>docker compose up --scale worker=8</code>"]
+
+    CLI --> WHEN_CLI["✅ Quick testing<br/>✅ Development<br/>✅ Single candidate debugging<br/>✅ No Docker needed"]
+    DOCKER --> WHEN_DOCKER["✅ Production batch runs<br/>✅ Parallel processing<br/>✅ API-based integration<br/>✅ Fault tolerance (auto-retry)"]
+    SCALE --> WHEN_SCALE["✅ Massive throughput<br/>✅ Horizontal scaling<br/>✅ Each worker handles 4 concurrent tasks"]
+
+    style CLI fill:#E8F5E9,stroke:#2E7D32
+    style DOCKER fill:#E3F2FD,stroke:#1565C0
+    style SCALE fill:#F3E5F5,stroke:#6A1B9A
+```
+
+| Criteria | CLI Mode | Docker Compose Mode |
+|---|---|---|
+| **Number of candidates** | 1–10 | 10–1000+ |
+| **Setup complexity** | `pip install` only | Requires Docker |
+| **Parallelism** | Sequential (one at a time) | Concurrent (4+ workers) |
+| **Fault tolerance** | None (crash = restart) | Auto-retry with backoff |
+| **API access** | No | Yes (`/process`, `/process/bulk`) |
+| **Scaling** | Not possible | `--scale worker=N` |
+| **Best for** | Development, testing, demos | Production, batch runs |
+
+---
+
+## ⚙️ Runtime Configuration
+
+The `config.json` file controls **output projection** — which fields appear in `candidate.json` and how they're shaped. The canonical profile is **never** modified.
+
+### Example `config.json`
 
 ```json
 {
   "fields": [
+    { "path": "candidate_id", "type": "string", "required": true },
     { "path": "full_name", "type": "string", "required": true },
     { "path": "primary_email", "from": "emails[0]", "type": "string", "required": true },
     { "path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164" },
-    { "path": "skills", "from": "skills[].name", "type": "string[]", "normalize": "canonical" }
+    { "path": "skills", "type": "array" },
+    { "path": "links", "type": "object" },
+    { "path": "headline", "type": "string" },
+    { "path": "location", "type": "object" },
+    { "path": "years_experience", "type": "number" },
+    { "path": "overall_confidence", "type": "number" }
   ],
-  "include_confidence": true,
+  "include_confidence": false,
+  "include_provenance": false,
   "on_missing": "null"
 }
 ```
 
-Supported features:
-- **Field selection**: Only include specified fields
-- **Renaming**: `path` = output key, `from` = canonical source path
-- **Path expressions**: `emails[0]`, `skills[].name`, `location.city`
-- **Per-field normalization**: `E164`, `canonical`
-- **Missing value policy**: `null`, `omit`, `error`
-- **Confidence/provenance toggle**: `include_confidence`, `include_provenance`
+### Config Options
+
+| Key | Type | Description |
+|---|---|---|
+| `fields` | array | List of fields to include in the output. Use `from` to remap (e.g., `emails[0]` → `primary_email`). |
+| `include_confidence` | bool | Include per-field confidence scores in the output |
+| `include_provenance` | bool | Include provenance tracking entries |
+| `on_missing` | string | How to handle missing fields: `"null"` (include as null), `"omit"` (exclude), or `"error"` (fail) |
 
 ---
 
-## Conflict Resolution
+## 🧪 Testing
 
-When sources disagree, a scoring engine selects the best value:
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test modules
+pytest tests/test_pipeline_e2e.py -v      # End-to-end pipeline test
+pytest tests/test_merge_engine.py -v       # Merge + conflict resolution tests
+pytest tests/test_confidence_engine.py -v  # Confidence scoring tests
+pytest tests/test_phone_normalizer.py -v   # Phone normalization tests
+pytest tests/test_projection_engine.py -v  # Output projection tests
+
+# Run with coverage
+pytest tests/ --cov=. --cov-report=term-missing
+```
+
+---
+
+## 📁 Project Structure
 
 ```
-Score = SourceReliability × 0.35
-      + AgreementBonus    × 0.30
-      + ExtractionConf    × 0.25
-      - ConflictPenalty   × 0.10
+Candidate Transformer/
+│
+├── app.py                      # CLI entry point (Typer)
+├── api.py                      # FastAPI REST server
+├── pipeline.py                 # Pipeline orchestrator (all stages wired here)
+├── tasks.py                    # Celery task definitions
+├── bulk_dispatch.py            # Bulk task dispatcher for Celery
+│
+├── parsers/                    # Source-specific parsers
+│   ├── base.py                 #   Abstract base parser
+│   ├── registry.py             #   Plug-and-play parser registry
+│   ├── csv_parser.py           #   CSV/ATS parser
+│   ├── resume_parser.py        #   PDF resume parser (regex + LLM)
+│   ├── github_parser.py        #   GitHub profile scraper
+│   ├── linkedin_parser.py      #   LinkedIn text parser
+│   ├── recruiter_notes_parser.py  # Recruiter notes NLP parser
+│   └── llm_verifier.py         #   Groq LLM verification layer
+│
+├── extractors/                 # Field extraction & canonical mapping
+│   └── field_extractor.py
+│
+├── normalizers/                # Data normalization
+│   ├── phone_normalizer.py     #   → E.164 format
+│   ├── date_normalizer.py      #   → YYYY-MM format
+│   ├── skill_normalizer.py     #   → Canonical skill names
+│   ├── location_normalizer.py  #   → {city, region, country}
+│   ├── semantic_normalizer.py  #   Company/title/degree normalization
+│   └── deduplicator.py         #   Post-merge deduplication
+│
+├── merger/                     # Multi-source data merging
+│   ├── merge_engine.py         #   Main merge orchestrator
+│   ├── conflict_resolver.py    #   Weighted conflict scoring
+│   └── semantic_matcher.py     #   ST + TF-IDF + difflib similarity
+│
+├── confidence/                 # Confidence scoring
+│   └── confidence_engine.py    #   Per-field + overall confidence
+│
+├── provenance/                 # Provenance tracking
+│   └── provenance_tracker.py   #   Field → source/method mapping
+│
+├── projector/                  # Output projection
+│   └── projection_engine.py    #   config.json → output reshaping
+│
+├── validator/                  # Schema validation
+│   └── schema_validator.py     #   Validate final output
+│
+├── audit/                      # Audit trail
+│   └── audit_engine.py         #   Transformations, conflicts, quality
+│
+├── schemas/                    # Pydantic data models
+│   ├── canonical.py            #   CanonicalProfile (single source of truth)
+│   ├── extracted.py            #   ExtractedRecord (per-source)
+│   ├── config_schema.py        #   RuntimeConfig model
+│   └── output_schema.py        #   Output validation schema
+│
+├── config/                     # Configuration
+│   ├── settings.py             #   Source reliability, weights, skill map
+│   └── loader.py               #   Config file loader
+│
+├── utils/                      # Shared utilities
+│   ├── helpers.py              #   ID generation, string cleaning, regex
+│   ├── logger.py               #   Logging setup
+│   └── resume_validators.py    #   Resume-specific validation
+│
+├── tests/                      # Test suite
+│   ├── test_pipeline_e2e.py
+│   ├── test_merge_engine.py
+│   ├── test_confidence_engine.py
+│   ├── test_phone_normalizer.py
+│   └── test_projection_engine.py
+│
+├── input/                      # Sample input data
+│   ├── config.json
+│   └── candidates/
+│       ├── sushant_kumar/
+│       ├── edge_case_conflict/
+│       └── edge_case_semantic/
+│
+├── output/                     # Pipeline output (generated)
+│
+├── Dockerfile                  # Docker image definition
+├── docker-compose.yml          # Multi-service orchestration
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
 ```
 
-**Source Reliability Scores:**
+---
 
-| Source | Reliability | Rationale |
-|--------|-----------|-----------|
-| LinkedIn | 0.85 | Self-reported but curated |
-| CSV | 0.80 | Structured but may be stale |
-| GitHub | 0.75 | Public, verifiable via repos |
-| Resume | 0.70 | Unstructured, extraction imprecise |
-| Recruiter Notes | 0.50 | Informal, subjective |
+## 💡 Design Decisions
 
-**Example:**
-- Resume says "Google", CSV says "Amazon", Recruiter Notes says "Google"
-- Google: reliability=0.70, agreement=2/3=67%, extraction=0.65 → Score: 0.575
-- Amazon: reliability=0.80, agreement=1/3=33%, extraction=0.90 → Score: 0.523
-- **Selected: Google** (reason: Resume and Recruiter Notes agreed)
+| Decision | Rationale |
+|---|---|
+| **LLM as verifier, not generator** | Avoids hallucination. The deterministic parser does the heavy lifting; the LLM only *corrects* what it can verify from the raw text. |
+| **Graceful degradation** | Every enhancement (LLM, SentenceTransformers, Redis) is optional. The pipeline works without any of them — just with lower confidence. |
+| **Field-specific reliability** | A global "source reliability" is too coarse. GitHub is great for skills but terrible for experience. The per-field matrix captures this nuance. |
+| **Three-tier semantic matching** | SentenceTransformers is most accurate but requires a model download. TF-IDF is fast and offline. difflib is the last resort. The cascade ensures the pipeline works in any environment. |
+| **Canonical profile ≠ output** | The canonical profile is the internal truth. The projected output can be reshaped by `config.json` without losing data. You can always regenerate different outputs from the same canonical profile. |
+| **Deterministic confidence** | No random numbers. Every confidence score is derived from measurable, auditable factors. You can explain *why* a field has confidence 0.82. |
+| **Celery + Redis for distributed** | Celery provides battle-tested task queuing with auto-retry, exponential backoff, and horizontal scaling. Redis is fast, lightweight, and serves double duty as broker + cache. |
 
 ---
 
-## Confidence Scoring
+## License
 
-Per-field confidence is computed from 5 deterministic factors:
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| Source reliability | 0.30 | Max reliability among contributing sources |
-| Agreement ratio | 0.30 | Proportion of sources that agree |
-| Extraction confidence | 0.20 | Average extraction quality from parsers |
-| Normalization success | 0.10 | Whether normalization succeeded |
-| Conflict-free | 0.10 | No conflicts detected for this field |
-
-**Overall confidence** = weighted mean of field confidences × completeness factor
+MIT
 
 ---
 
-## Extensibility
+<div align="center">
 
-Adding a new parser (e.g., IndeedParser):
+**Built with ❤️ by Sushant Kumar**
 
-1. Create `parsers/indeed_parser.py` implementing `BaseParser`
-2. Register it in `parsers/registry.py`'s `create_default_registry()`
-
-That's it — no other code changes needed.
-
----
-
-## Sample Input
-
-The `input/` directory contains sample data for a candidate **Priya Sharma** with deliberate conflicts:
-
-| Source | Company | Skills | Phone |
-|--------|---------|--------|-------|
-| CSV | Amazon | Python, Java, AWS, Docker | 9876543210 |
-| Resume PDF | Google → Amazon | Python, Java, SQL, Spark, K8s, Docker, AWS, TF, ML, Git, CI/CD, REST, PostgreSQL | +91 98765 43210 |
-| GitHub JSON | — | Python, Go, JavaScript, Shell (from repos) | — |
-| LinkedIn TXT | Google → Amazon | Python, ML, Spark, K8s, Docker, AWS, Data Eng, TF, SQL, Git | — |
-| Recruiter Notes | Google (currently) | Python, TF, Spark, AWS, Docker, K8s | 9876543210 |
-
-The conflict on `current_company` (Amazon vs Google) is resolved by the scoring engine — Google wins because 3/4 sources agree.
-
----
-
-## Sample Output
-
-See `output/candidate.json` and `output/audit_report.json` after running the pipeline.
-
----
-
-## Assumptions
-
-1. **Single candidate per run**: The pipeline processes one candidate at a time. CSV is expected to have one row.
-2. **Local files only**: GitHub profile is a local JSON file simulating an API response. Live API integration is a future extension.
-3. **Default phone region**: Phones without country code are assumed to be Indian (+91). Configurable in `config/settings.py`.
-4. **Skill canonicalization**: Unknown skills are title-cased. The canonical mapping covers 120+ common tech skills.
-5. **Date parsing**: Ambiguous dates are parsed with `PREFER_DATES_FROM=past`. Months default to January when only year is provided.
-
----
-
-## Edge Cases Handled
-
-1. **Missing source files**: Pipeline runs with available sources; logs warnings for missing files
-2. **Broken/empty PDF**: Returns empty record, pipeline continues
-3. **Invalid CSV columns**: Maps available columns, warns about unmapped ones
-4. **Unparseable phone numbers**: Keeps raw value, sets normalization_success=false
-5. **Conflicting dates**: Uses dateparser with best-effort; keeps raw on failure
-6. **Empty fields**: Tracked as missing in audit, never invented
-
----
-
-## Future Improvements
-
-- **Live API integration**: GitHub REST/GraphQL API, LinkedIn OAuth
-- **Multi-candidate batch processing**: Process CSV with many rows
-- **Entity resolution**: Match candidates across runs (dedup at candidate level)
-- **ML-based extraction**: Use NER models for resume parsing instead of regex
-- **Webhook support**: Trigger pipeline on new source file uploads
-- **Database backend**: Store canonical profiles in PostgreSQL
-- **Web UI**: Visual pipeline dashboard with audit trail viewer
+</div>
+]]>
