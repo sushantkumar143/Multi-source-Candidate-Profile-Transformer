@@ -1,16 +1,16 @@
-<![CDATA[<div align="center">
-
 # 🔄 Multi-Source Candidate Profile Transformer
 
 **An intelligent data pipeline that ingests candidate information from multiple heterogeneous sources, resolves conflicts, normalizes data, and produces a single unified canonical JSON profile with per-field confidence scores, provenance tracking, and a full audit trail.**
 
+<p align="center">
+
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](#prerequisites)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](#api-server)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#-distributed-mode-with-docker-compose)
-[![Groq LLM](https://img.shields.io/badge/Groq-LLM%20Verified-FF6B35?logo=ai&logoColor=white)](#-when-does-the-llm-come-into-the-picture)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](#-option-2-distributed-mode-with-docker-compose)
+[![Groq LLM](https://img.shields.io/badge/Groq-LLM%20Verified-FF6B35)](#-when-does-the-llm-come-into-the-picture)
 [![License](https://img.shields.io/badge/License-MIT-green)](#license)
 
-</div>
+</p>
 
 ---
 
@@ -21,7 +21,7 @@
 - [Architecture](#-architecture)
 - [Input Format](#-input-format)
 - [Output Format](#-output-format)
-- [Conflict Resolution — How It Works](#-conflict-resolution--how-it-works)
+- [Conflict Resolution — How It Works](#%EF%B8%8F-conflict-resolution--how-it-works)
 - [When Does the LLM Come Into the Picture?](#-when-does-the-llm-come-into-the-picture)
 - [Semantic Matching & Deduplication](#-semantic-matching--deduplication)
 - [Confidence Scoring](#-confidence-scoring)
@@ -30,7 +30,7 @@
   - [Local CLI Mode](#-option-1-local-cli-mode-single-machine)
   - [Distributed Docker Compose Mode](#-option-2-distributed-mode-with-docker-compose)
   - [When to Use Which Mode](#-when-to-use-which-mode)
-- [Runtime Configuration (config.json)](#-runtime-configuration)
+- [Runtime Configuration (config.json)](#%EF%B8%8F-runtime-configuration)
 - [Testing](#-testing)
 - [Project Structure](#-project-structure)
 - [Design Decisions](#-design-decisions)
@@ -64,16 +64,16 @@ The following diagram shows the **end-to-end flow** of how data moves through th
 
 ```mermaid
 flowchart TB
-    subgraph INPUT["📂 INPUT SOURCES"]
-        CSV["candidate.csv<br/><i>Structured ATS data</i>"]
-        RESUME["resume.pdf<br/><i>Unstructured PDF</i>"]
-        GITHUB["links.json → GitHub Scrape<br/><i>Public profile + repos</i>"]
-        LINKEDIN["linkedin.txt<br/><i>Scraped LinkedIn profile</i>"]
-        NOTES["recruiter_notes.txt<br/><i>Free-form notes</i>"]
+    subgraph INPUT["INPUT SOURCES"]
+        CSV["candidate.csv"]
+        RESUME["resume.pdf"]
+        GITHUB["links.json + GitHub Scrape"]
+        LINKEDIN["linkedin.txt"]
+        NOTES["recruiter_notes.txt"]
     end
 
-    subgraph STAGE1["Stage 1: Source Detection & Parsing"]
-        REG["Parser Registry<br/><i>Auto-detects file types</i>"]
+    subgraph STAGE1["Stage 1 - Source Detection and Parsing"]
+        REG["Parser Registry"]
         CSV_P["CsvParser"]
         RES_P["ResumeParser"]
         GH_P["GithubWebParser"]
@@ -81,46 +81,46 @@ flowchart TB
         RN_P["RecruiterNotesParser"]
     end
 
-    subgraph LLM_BLOCK["🤖 LLM Verification Layer"]
-        LLM["Groq API<br/><i>llama-3.1-70b-versatile</i><br/><br/>Verifies & corrects<br/>resume parsed fields<br/><br/>Multi-key fallback<br/>Temperature = 0.0"]
+    subgraph LLM_BLOCK["LLM Verification Layer"]
+        LLM["Groq API - llama-3.1-70b"]
     end
 
-    subgraph STAGE2["Stage 2: Field Extraction"]
-        EXTRACT["Field Extractor<br/><i>Maps raw fields → canonical names</i>"]
+    subgraph STAGE2["Stage 2 - Field Extraction"]
+        EXTRACT["Field Extractor"]
     end
 
-    subgraph STAGE3["Stage 3: Normalization"]
-        PHONE_N["Phone Normalizer<br/><i>→ E.164 format</i>"]
-        DATE_N["Date Normalizer<br/><i>→ YYYY-MM format</i>"]
-        SKILL_N["Skill Normalizer<br/><i>→ Canonical names</i>"]
-        LOC_N["Location Normalizer<br/><i>→ city/region/country</i>"]
+    subgraph STAGE3["Stage 3 - Normalization"]
+        PHONE_N["Phone Normalizer - E.164"]
+        DATE_N["Date Normalizer - YYYY-MM"]
+        SKILL_N["Skill Normalizer"]
+        LOC_N["Location Normalizer"]
     end
 
-    subgraph STAGE4["Stage 4: Merging + Conflict Resolution"]
+    subgraph STAGE4["Stage 4 - Merging and Conflict Resolution"]
         MERGE["Merge Engine"]
-        SEM["Semantic Matcher<br/><i>SentenceTransformer + TF-IDF</i>"]
-        CONFLICT["Conflict Resolver<br/><i>Weighted scoring formula</i>"]
-        DEDUP["Post-Merge Deduplicator<br/><i>Emails, phones, skills</i>"]
+        SEM["Semantic Matcher"]
+        CONFLICT["Conflict Resolver"]
+        DEDUP["Post-Merge Deduplicator"]
     end
 
-    subgraph STAGE5["Stage 5-7: Enrichment"]
-        CANON["Build Canonical Profile<br/><i>Pydantic CanonicalProfile</i>"]
-        CONF["Confidence Engine<br/><i>Per-field + overall scores</i>"]
-        PROV["Provenance Tracker<br/><i>Field → source mapping</i>"]
+    subgraph STAGE5["Stage 5-7 - Enrichment"]
+        CANON["Build Canonical Profile"]
+        CONF["Confidence Engine"]
+        PROV["Provenance Tracker"]
     end
 
-    subgraph STAGE8["Stage 8-9: Output Shaping"]
-        PROJ["Projection Engine<br/><i>Apply config.json reshaping</i>"]
-        VALID["Schema Validator<br/><i>Validate output structure</i>"]
+    subgraph STAGE8["Stage 8-9 - Output Shaping"]
+        PROJ["Projection Engine"]
+        VALID["Schema Validator"]
     end
 
-    subgraph OUTPUT["📤 OUTPUT"]
-        CAND["candidate.json<br/><i>Projected output</i>"]
-        FULL["candidate_full.json<br/><i>Complete canonical profile</i>"]
-        AUDIT["audit_report.json<br/><i>Transformations + conflicts</i>"]
+    subgraph OUTPUT["OUTPUT"]
+        CAND["candidate.json"]
+        FULL["candidate_full.json"]
+        AUDIT["audit_report.json"]
     end
 
-    CONFIG["⚙️ config.json<br/><i>Runtime projection config</i>"]
+    CONFIG["config.json"]
 
     CSV --> REG
     RESUME --> REG
@@ -134,8 +134,8 @@ flowchart TB
     REG --> LI_P
     REG --> RN_P
 
-    RES_P -.->|"Passes extracted fields<br/>for verification"| LLM
-    LLM -.->|"Returns corrected JSON"| RES_P
+    RES_P -.-> LLM
+    LLM -.-> RES_P
 
     CSV_P --> EXTRACT
     RES_P --> EXTRACT
@@ -168,11 +168,6 @@ flowchart TB
     VALID --> CAND
     VALID --> FULL
     VALID --> AUDIT
-
-    style LLM_BLOCK fill:#FFF3E0,stroke:#FF9800,stroke-width:2px
-    style INPUT fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
-    style OUTPUT fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
-    style STAGE4 fill:#FCE4EC,stroke:#C62828,stroke-width:2px
 ```
 
 ### Step-by-Step Walkthrough
@@ -183,7 +178,7 @@ flowchart TB
 | **2. Field Extraction** | Raw parsed fields are mapped to canonical names (e.g., `name` → `full_name`, `phone` → `phones`). | Standardizes heterogeneous field names from different sources. |
 | **🤖 LLM Verification** | **Only for resume.pdf**: The deterministic parser's output is sent to Groq LLM for verification/correction. See [LLM section](#-when-does-the-llm-come-into-the-picture). | Catches regex parser mistakes without hallucinating new data. |
 | **3. Normalization** | Phones → E.164 (`+916207851006`), dates → YYYY-MM (`2025-09`), skills → canonical (`ML` → `Machine Learning`), locations → structured `{city, region, country}`. | Every transformation is logged in the audit trail. |
-| **4. Merging** | Data from all sources is combined. **Scalar fields** use conflict resolution. **List fields** (skills, emails) use semantic union. **Structured lists** (experience, education) use semantic deduplication. | See [Conflict Resolution](#-conflict-resolution--how-it-works). |
+| **4. Merging** | Data from all sources is combined. **Scalar fields** use conflict resolution. **List fields** (skills, emails) use semantic union. **Structured lists** (experience, education) use semantic deduplication. | See [Conflict Resolution](#%EF%B8%8F-conflict-resolution--how-it-works). |
 | **5. Canonical Profile** | A Pydantic `CanonicalProfile` model is built from the merged data. This is the single source of truth. | Never modified by runtime config — only the projected output changes. |
 | **6. Confidence Scoring** | Deterministic per-field confidence using weighted formula (source reliability, agreement, extraction confidence, normalization, conflicts). | See [Confidence Scoring](#-confidence-scoring). |
 | **7. Provenance** | Each field is annotated with which source(s) contributed it and what extraction method was used. | Full traceability for auditing. |
@@ -197,8 +192,7 @@ flowchart TB
 
 ```mermaid
 graph LR
-    subgraph Core["Core Pipeline (pipeline.py)"]
-        direction TB
+    subgraph Core["Core Pipeline"]
         A["Parsers"] --> B["Extractors"]
         B --> C["Normalizers"]
         C --> D["Merger"]
@@ -209,19 +203,16 @@ graph LR
     end
 
     subgraph Infra["Infrastructure"]
-        CLI["app.py<br/>CLI Entry"]
-        API["api.py<br/>FastAPI Server"]
-        CELERY["tasks.py<br/>Celery Worker"]
-        REDIS["Redis<br/>Broker + Cache"]
+        CLI["app.py - CLI Entry"]
+        API["api.py - FastAPI Server"]
+        CELERY["tasks.py - Celery Worker"]
+        REDIS["Redis - Broker + Cache"]
     end
 
     CLI --> Core
     API --> Core
     CELERY --> Core
     REDIS -.-> CELERY
-
-    style Core fill:#E8EAF6,stroke:#283593
-    style Infra fill:#FFF3E0,stroke:#E65100
 ```
 
 The architecture follows a **clean separation of concerns**:
@@ -344,9 +335,24 @@ A detailed record of everything the pipeline did:
   "sources_detected": ["candidate.csv", "links.json", "resume.pdf"],
   "total_transformations": 13,
   "transformations": [
-    { "field": "phone", "type": "normalization", "before": "+91-6207851006", "after": "+916207851006" },
-    { "field": "skill", "type": "normalization", "before": "ML", "after": "Machine Learning" },
-    { "field": "experience.start", "type": "normalization", "before": "Sep 2025", "after": "2025-09" }
+    {
+      "field": "phone",
+      "type": "normalization",
+      "before": "+91-6207851006",
+      "after": "+916207851006"
+    },
+    {
+      "field": "skill",
+      "type": "normalization",
+      "before": "ML",
+      "after": "Machine Learning"
+    },
+    {
+      "field": "experience.start",
+      "type": "normalization",
+      "before": "Sep 2025",
+      "after": "2025-09"
+    }
   ],
   "conflicts": [],
   "data_quality": {
@@ -439,14 +445,11 @@ The LLM is used at **exactly one point** in the pipeline — as a **verification
 
 ```mermaid
 flowchart LR
-    PDF["resume.pdf"] --> PDFPLUMBER["pdfplumber<br/><i>Extract raw text</i>"]
-    PDFPLUMBER --> REGEX["Regex Parser<br/><i>Section detection<br/>Pattern matching</i>"]
-    REGEX --> PARSED["Parsed JSON<br/><i>Deterministic but<br/>may have errors</i>"]
-    PARSED --> LLM["🤖 Groq LLM<br/><i>Verify & correct</i>"]
-    LLM --> VERIFIED["Verified JSON<br/><i>Higher confidence<br/>(0.90 vs 0.70)</i>"]
-
-    style LLM fill:#FFF3E0,stroke:#FF9800,stroke-width:3px
-    style VERIFIED fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    PDF["resume.pdf"] --> PDFPLUMBER["pdfplumber - Extract text"]
+    PDFPLUMBER --> REGEX["Regex Parser"]
+    REGEX --> PARSED["Parsed JSON"]
+    PARSED --> LLM["Groq LLM - Verify and Correct"]
+    LLM --> VERIFIED["Verified JSON - confidence 0.90"]
 ```
 
 ### Why Only for Resumes?
@@ -472,6 +475,8 @@ flowchart LR
 
 ### LLM Fallback Chain
 
+The system tries multiple API keys and models in sequence:
+
 ```
 Groq API Key 1 + llama-3.1-70b-versatile
     ↓ (on failure)
@@ -489,6 +494,8 @@ Return original regex-parsed JSON (graceful degradation)
 
 ### Providing Groq API Keys
 
+**Linux / macOS:**
+
 ```bash
 # Set one or more Groq API keys as environment variables
 export GROQ_API_KEY_1="gsk_your_primary_key_here"
@@ -499,7 +506,8 @@ export GROQ_API_KEY_3="gsk_your_tertiary_key_here"     # Optional backup
 python app.py --input input/candidates
 ```
 
-On **Windows (PowerShell)**:
+**Windows (PowerShell):**
+
 ```powershell
 $env:GROQ_API_KEY_1 = "gsk_your_primary_key_here"
 $env:GROQ_API_KEY_2 = "gsk_your_backup_key_here"
@@ -516,20 +524,17 @@ The pipeline uses a **three-tier similarity cascade** to determine if two values
 
 ```mermaid
 flowchart TD
-    A["Compare two strings"] --> B{"Exact match<br/>(case-insensitive)?"}
-    B -->|Yes| MATCH["✅ Match"]
-    B -->|No| C{"Substring check<br/>'Google LLC' contains 'Google'?"}
+    A["Compare two strings"] --> B{"Exact match?"}
+    B -->|Yes| MATCH["Match"]
+    B -->|No| C{"Substring check?"}
     C -->|Yes| MATCH
-    C -->|No| D["SentenceTransformer<br/><i>all-MiniLM-L6-v2</i><br/>Cosine similarity"]
+    C -->|No| D["SentenceTransformer similarity"]
     D -->|"sim > 0.80"| MATCH
-    D -->|"sim ≤ 0.80"| E["TF-IDF Char N-Gram<br/><i>3-5 character n-grams</i><br/>Cosine similarity"]
+    D -->|"sim <= 0.80"| E["TF-IDF Char N-Gram similarity"]
     E -->|"sim > 0.75"| MATCH
-    E -->|"sim ≤ 0.75"| F["difflib SequenceMatcher"]
+    E -->|"sim <= 0.75"| F["difflib SequenceMatcher"]
     F -->|"ratio > 0.85"| MATCH
-    F -->|"ratio ≤ 0.85"| NOMATCH["❌ Not a match"]
-
-    style MATCH fill:#C8E6C9,stroke:#2E7D32
-    style NOMATCH fill:#FFCDD2,stroke:#C62828
+    F -->|"ratio <= 0.85"| NOMATCH["Not a match"]
 ```
 
 This cascade ensures:
@@ -641,6 +646,7 @@ Processing candidate: edge_case_conflict
 ```
 
 Output is organized per-candidate:
+
 ```
 output/
 ├── sushant_kumar/
@@ -664,19 +670,16 @@ The distributed mode uses a **three-service architecture**:
 ```mermaid
 graph LR
     subgraph Docker["Docker Compose Cluster"]
-        WEB["🌐 FastAPI Web Server<br/><i>Accepts requests</i><br/><i>Port 8000</i>"]
-        WORKER["⚙️ Celery Worker<br/><i>Processes pipelines</i><br/><i>Concurrency: 4</i>"]
-        REDIS["📦 Redis<br/><i>Message broker</i><br/><i>+ Result backend</i>"]
+        WEB["FastAPI Web Server - Port 8000"]
+        WORKER["Celery Worker - Concurrency 4"]
+        REDIS["Redis - Broker + Backend"]
     end
 
-    USER["👤 User / Script"] -->|"POST /process/bulk"| WEB
+    USER["User or Script"] -->|"POST /process/bulk"| WEB
     WEB -->|"Dispatch tasks"| REDIS
     REDIS -->|"Pull tasks"| WORKER
-    WORKER -->|"Write results"| OUTPUT["📂 output/"]
+    WORKER -->|"Write results"| OUTPUT["output/"]
     WORKER -->|"Store status"| REDIS
-
-    style Docker fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
-    style REDIS fill:#FFCDD2,stroke:#C62828
 ```
 
 #### How It Works
@@ -755,24 +758,6 @@ The worker is configured for **reliability**:
 
 ### 📋 When to Use Which Mode
 
-```mermaid
-flowchart TD
-    START["How many candidates?"] --> FEW{"1–10 candidates?"}
-    FEW -->|Yes| CLI["⚡ Use CLI Mode<br/><code>python app.py --input input/candidates</code>"]
-    FEW -->|No| MANY{"10–100+ candidates?"}
-    MANY -->|Yes| DOCKER["🐳 Use Docker Compose<br/><code>docker compose up --build</code>"]
-    MANY -->|No| HUGE{"1000+ candidates?"}
-    HUGE -->|Yes| SCALE["🐳 Docker Compose<br/>+ Scale workers<br/><code>docker compose up --scale worker=8</code>"]
-
-    CLI --> WHEN_CLI["✅ Quick testing<br/>✅ Development<br/>✅ Single candidate debugging<br/>✅ No Docker needed"]
-    DOCKER --> WHEN_DOCKER["✅ Production batch runs<br/>✅ Parallel processing<br/>✅ API-based integration<br/>✅ Fault tolerance (auto-retry)"]
-    SCALE --> WHEN_SCALE["✅ Massive throughput<br/>✅ Horizontal scaling<br/>✅ Each worker handles 4 concurrent tasks"]
-
-    style CLI fill:#E8F5E9,stroke:#2E7D32
-    style DOCKER fill:#E3F2FD,stroke:#1565C0
-    style SCALE fill:#F3E5F5,stroke:#6A1B9A
-```
-
 | Criteria | CLI Mode | Docker Compose Mode |
 |---|---|---|
 | **Number of candidates** | 1–10 | 10–1000+ |
@@ -782,6 +767,12 @@ flowchart TD
 | **API access** | No | Yes (`/process`, `/process/bulk`) |
 | **Scaling** | Not possible | `--scale worker=N` |
 | **Best for** | Development, testing, demos | Production, batch runs |
+
+**Decision guide:**
+
+- **1–10 candidates?** → Use CLI: `python app.py --input input/candidates`
+- **10–100+ candidates?** → Use Docker Compose: `docker compose up --build`
+- **1000+ candidates?** → Scale workers: `docker compose up --scale worker=8`
 
 ---
 
@@ -862,14 +853,14 @@ Candidate Transformer/
 │   ├── recruiter_notes_parser.py  # Recruiter notes NLP parser
 │   └── llm_verifier.py         #   Groq LLM verification layer
 │
-├── extractors/                 # Field extraction & canonical mapping
+├── extractors/                 # Field extraction and canonical mapping
 │   └── field_extractor.py
 │
 ├── normalizers/                # Data normalization
-│   ├── phone_normalizer.py     #   → E.164 format
-│   ├── date_normalizer.py      #   → YYYY-MM format
-│   ├── skill_normalizer.py     #   → Canonical skill names
-│   ├── location_normalizer.py  #   → {city, region, country}
+│   ├── phone_normalizer.py     #   Phone to E.164 format
+│   ├── date_normalizer.py      #   Dates to YYYY-MM format
+│   ├── skill_normalizer.py     #   Skills to canonical names
+│   ├── location_normalizer.py  #   Locations to city/region/country
 │   ├── semantic_normalizer.py  #   Company/title/degree normalization
 │   └── deduplicator.py         #   Post-merge deduplication
 │
@@ -882,10 +873,10 @@ Candidate Transformer/
 │   └── confidence_engine.py    #   Per-field + overall confidence
 │
 ├── provenance/                 # Provenance tracking
-│   └── provenance_tracker.py   #   Field → source/method mapping
+│   └── provenance_tracker.py   #   Field to source/method mapping
 │
 ├── projector/                  # Output projection
-│   └── projection_engine.py    #   config.json → output reshaping
+│   └── projection_engine.py    #   config.json output reshaping
 │
 ├── validator/                  # Schema validation
 │   └── schema_validator.py     #   Validate final output
@@ -952,9 +943,6 @@ MIT
 
 ---
 
-<div align="center">
-
-**Built with ❤️ by Sushant Kumar**
-
-</div>
-]]>
+<p align="center">
+<b>Built with ❤️ by Sushant Kumar</b>
+</p>
