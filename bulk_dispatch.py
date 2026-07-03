@@ -79,7 +79,7 @@ def dispatch(
             config_path=str(config_path) if config_path else None,
         )
         task_ids.append((candidate_name, task.id))
-        typer.echo(f"  ✓ Dispatched: {candidate_name} → Task ID: {task.id[:8]}...")
+        typer.echo(f"  [OK] Dispatched: {candidate_name} -> Task ID: {task.id[:8]}...")
 
     typer.echo(f"\n[INFO] {len(task_ids)} tasks dispatched to Celery workers.")
     typer.echo("[INFO] Workers will process them in parallel.")
